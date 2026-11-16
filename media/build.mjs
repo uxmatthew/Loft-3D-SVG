@@ -6,7 +6,7 @@ import { copyFileSync, mkdirSync, statSync } from 'node:fs';
 
 const assets = 'media/animations/assets';
 mkdirSync(assets, { recursive: true });
-for (const f of ['dist/loft.global.js', 'demo/catalogue.js', 'demo/models/figure.js']) copyFileSync(f, `${assets}/${f.split('/').pop()}`);
+for (const f of ['dist/loft.global.js', 'demo/catalogue.js', 'demo/models/figure.js', 'demo/icons/icons.js', 'demo/icons/spot-icons.js']) copyFileSync(f, `${assets}/${f.split('/').pop()}`);
 
 const run = (cmd, args, opts = {}) => execFileSync(cmd, args, { stdio: 'inherit', ...opts });
 run('npx', ['--yes', 'hyperframes@0.9.58', 'render', '--quality', 'looks', '-o', '../loft.mp4'], {
@@ -15,7 +15,7 @@ run('npx', ['--yes', 'hyperframes@0.9.58', 'render', '--quality', 'looks', '-o',
 });
 
 // [name, start, duration] in seconds, as laid out in the composition.
-const clips = [['looks', 0, 6], ['grow', 6, 4], ['morph', 10, 4], ['rotate', 14, 4], ['model', 18, 4], ['spots', 22, 4]];
+const clips = [['spots', 0, 4], ['icons', 4, 4], ['looks', 8, 6], ['grow', 14, 4], ['morph', 18, 4], ['rotate', 22, 4], ['model', 26, 4]];
 for (const [name, start, duration] of clips) {
   const out = `media/${name}.gif`;
   run('ffmpeg', [

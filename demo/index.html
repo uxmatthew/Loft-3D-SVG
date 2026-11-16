@@ -266,6 +266,16 @@
   .spots + .start { margin-top: clamp(28px, 4vw, 52px); }
   @media (max-width: 560px) { .spot { padding: 6px 12px 16px; } .spotbar .btn { flex: 1 1 100%; } .seg.seg--two { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
+  /* Icons: a row of cells per library */
+  .iconset { display: grid; gap: 14px; margin-bottom: clamp(32px, 5vw, 56px); }
+  .iconset__head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 24px; }
+  .iconset__head p { color: var(--muted); font-size: .8125rem; }
+  .icons { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); }
+  @media (max-width: 899px) { .icons { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+  .icon { display: grid; justify-items: center; gap: 2px; padding: 12px 4px 10px; background: var(--bg); min-width: 0; cursor: default; }
+  .icon__stage { width: min(64px, 100%); aspect-ratio: 1; }
+  .icon code { font-size: .6875rem; color: var(--muted); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
   /* Model */
   .model { display: grid; gap: clamp(24px, 4vw, 56px); align-items: start; }
   @media (min-width: 900px) { .model { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); } }
@@ -368,8 +378,8 @@
           <div class="door__art door__art--ui" id="door-ui" aria-hidden="true"><div></div><div></div><div></div></div>
           <div class="door__copy">
             <span class="tag">01 · UI</span>
-            <h2 class="display">Flat pictures that lean when you point</h2>
-            <p>Spot illustrations for feature cards and empty states. Every part is a sheet standing in space, so on hover the picture comes apart in depth.</p>
+            <h2 class="display">Illustrations and icons that lean when you point</h2>
+            <p>UI illustrations for feature cards and empty states, and icons from Lucide, Tabler and Font Awesome. Every part is a sheet standing in space, so on hover the picture comes apart in depth.</p>
             <span class="door__go">Explore UI <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
           </div>
         </a>
@@ -418,7 +428,8 @@ scene.orbit({ auto: 0.3 });</code></pre>
     <div class="wrap subnav__in">
       <span class="tag subnav__name" id="group-ui">UI</span>
       <div class="tabs">
-        <a href="#spots">Spots</a>
+        <a href="#spots">UI illustrations</a>
+        <a href="#icons">Icons</a>
         <span class="tabs__bar" aria-hidden="true"></span>
       </div>
     </div>
@@ -436,8 +447,8 @@ scene.orbit({ auto: 0.3 });</code></pre>
   <section class="sheet" id="spots" aria-labelledby="spots-h">
     <div class="wrap">
       <div class="head">
-        <h2 class="display" id="spots-h">Flat pictures that lean when you point</h2>
-        <p class="lead">Spot illustrations are small pictures of interface ideas, for feature cards and empty states. They are drawn flat, but every part is a sheet standing in space. Point at a card: its parts lift off the page and a short piece of motion plays. Move toward an edge or a corner and the picture leans away under the pointer.</p>
+        <h2 class="display" id="spots-h">UI illustrations that lean when you point</h2>
+        <p class="lead">UI illustrations (Loft calls them spots) are small pictures of interface ideas, for feature cards and empty states. They are drawn flat, but every part is a sheet standing in space. Point at a card: its parts lift off the page and a short piece of motion plays. Move toward an edge or a corner and the picture leans away under the pointer.</p>
       </div>
       <div class="spotbar">
         <div class="field">
@@ -471,6 +482,22 @@ new Spot('#art', { size: [240, 200], parts: [
 ] });</code></pre>
         </div>
       </div>
+    </div>
+  </section>
+
+  <section class="sheet" id="icons" aria-labelledby="icons-h">
+    <div class="wrap">
+      <div class="head">
+        <h2 class="display" id="icons-h">Icons, lifted off the page</h2>
+        <p class="lead">The same twenty ideas from three icon libraries, each icon's own SVG read with <code>kit.path()</code> and stood up as a spot. Its strokes stand at different depths, so when you point at one it leans toward you, comes apart a little, and plays a short motion of its own.</p>
+      </div>
+      <div id="icon-sets"></div>
+<pre><code>import { Spot, kit } from './dist/loft.js';
+
+new Spot('#icon', { size: [24, 24], parts: [{
+  group: paths.map((d, k) => ({ shape: kit.path(d), fill: false, lift: 2 + 2.5 * k })),
+  hover: [{ t: 0.5, ry: Math.PI, z: 5 }, { t: 1, ry: 2 * Math.PI, z: 0 }],  <span class="dim">// a flip</span>
+}] }, { hover: 'once', follow: 0.5 });</code></pre>
     </div>
   </section>
 
@@ -542,6 +569,8 @@ new Spot('#art', { size: [240, 200], parts: [
 <script src="../dist/loft.global.js"></script>
 <script src="./models/figure.js"></script>
 <script src="./catalogue.js"></script>
+<script src="./icons/icons.js"></script>
+<script src="./icons/spot-icons.js"></script>
 <script>
 (() => {
   const { Scene, shapes, torus, capsule, revolve, curve, NurbsCurve, NurbsSurface, morph, ease, resolveMaterial } = Loft;
@@ -1007,6 +1036,31 @@ new Spot('#art', { size: [240, 200], parts: [
       return { name, scene };
     });
     for (const c of cards) window.__scenes[c.name.toLowerCase()] = c.scene;
+  });
+
+  // ── Icons: three libraries, each icon stood up as a spot ─────────────────
+  whenShown('icons', () => {
+    const host = document.getElementById('icon-sets'), all = [];
+    for (const lib of LoftDemoIcons) {
+      const set = document.createElement('section');
+      set.className = 'iconset';
+      set.setAttribute('aria-label', lib.name);
+      set.innerHTML = `<div class="iconset__head"><h3>${lib.name} <span class="tag">${lib.version} · ${lib.kind === 'fill' ? 'solid' : 'outline'}</span></h3>` +
+        `<p><a class="link" href="${lib.site}">${lib.site.replace('https://', '')}</a> · ${lib.licence}</p></div><ul class="icons"></ul>`;
+      host.appendChild(set);
+      const list = set.querySelector('.icons');
+      for (const icon of lib.icons) {
+        const li = document.createElement('li');
+        li.className = 'icon';
+        li.innerHTML = `<div class="icon__stage"></div><code>${icon.name}</code>`;
+        list.appendChild(li);
+        const spot = new Loft.Spot(li.firstChild, LoftIconSpots.recipe(lib, icon), { label: `${icon.name}, from ${lib.name}`, trigger: li, hover: 'once', follow: 0.55, duration: 900 });
+        spot.base = { duration: spot.duration, follow: spot.follow };
+        all.push(spot);
+      }
+    }
+    follow(() => { for (const s of all) { s.duration = s.base.duration * system.tempo; s.follow = s.base.follow * system.lean; } });
+    window.__icons = all;
   });
 
   // ── Model: a rigged Blender figure, every look and layer ─────────────────

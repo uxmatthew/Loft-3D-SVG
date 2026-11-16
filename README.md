@@ -4,7 +4,7 @@
 
 **[Live demo](https://uxmatthew.github.io/Loft-3D-SVG/demo/)**
 
-![One vase drawn in each of Loft's six looks: clay, toon, ink, wire, engrave and halftone](media/looks.gif)
+![Six UI illustrations playing their hover motion: assist, paste, plug-in, search, settings and layers](media/spots.gif)
 
 Loft builds shapes from NURBS (the curves and surfaces CAD software uses) and draws them as SVG `<path>` elements. The result scales like type, takes its colours from your CSS, prints as vectors, and can be rendered to a string on a server.
 
@@ -20,6 +20,20 @@ scene.orbit({ auto: 0.3 });
 
 Every animation here is drawn by Loft itself, frame by frame, as SVG.
 
+### UI
+
+**UI illustrations** (shown at the top). Small flat pictures of interface ideas (Loft calls them spots) whose parts stand apart in depth and move on hover.
+
+**Icons.** Icons from Lucide, Tabler Icons and Font Awesome, each read straight from its SVG with `kit.path()` and stood up as a spot, so its strokes sit at different depths and it plays a small motion of its own: a heart pulses, a bell rings, an envelope tumbles.
+
+![Ten icons from each of Lucide, Tabler Icons and Font Awesome, each playing a small 3D hover motion in a wave](media/icons.gif)
+
+### Objects
+
+**One surface, six looks.**
+
+![One vase drawn in each of Loft's six looks: clay, toon, ink, wire, engrave and halftone](media/looks.gif)
+
 **Shapes, one call each, that grow, morph and turn.** Grow animates how much of a surface is drawn; morph blends one control net into another built the same way; rotate turns the scene.
 
 ![Eight shapes growing into place: vase, torus, capsule, knot, shell, waves, ribbon and hull](media/grow.gif)
@@ -32,13 +46,9 @@ Every animation here is drawn by Loft itself, frame by frame, as SVG.
 
 ![A blocky figure walking, drawn three times: in clay, toon and ink](media/model.gif)
 
-**Spot illustrations.** Small flat pictures of interface ideas whose parts stand apart in depth and move on hover.
-
-![Six spot illustrations playing their hover motion: assist, paste, plug-in, search, settings and layers](media/spots.gif)
-
 ### The demo page
 
-Open `demo/index.html` in a browser to try all of it: it loads `dist/loft.global.js` and needs no server. The home page leads to two groups, **UI** (the spot illustrations) and **Objects** (the shape morph, the shapes with their hover motions, and the rigged model in every look and layer). The bar at the top picks a design system for the whole page — Studio, Pulp, Drafting, Blueprint, Banknote or Print — and each one sets the look every drawing is made in, the accent colour for light and dark, the display face, line weights and colours, and the motion: speed, easing and how far the spots lean. It shows how one set of drawings takes on a brand. The button in the corner switches between light, dark and the system's theme. A sheet's scenes are built the first time it is opened, and the address names the sheet, so `demo/index.html#model` opens the Model sheet.
+Open `demo/index.html` in a browser to try all of it: it loads `dist/loft.global.js` and needs no server. The home page leads to two groups, **UI** (UI illustrations, and 60 icons from three libraries that move in 3D on hover) and **Objects** (the shape morph, the shapes with their hover motions, and the rigged model in every look and layer). The bar at the top picks a design system for the whole page — Studio, Pulp, Drafting, Blueprint, Banknote or Print — and each one sets the look every drawing is made in, the accent colour for light and dark, the display face, line weights and colours, and the motion: speed, easing and how far the spots lean. It shows how one set of drawings takes on a brand. The button in the corner switches between light, dark and the system's theme. A sheet's scenes are built the first time it is opened, and the address names the sheet, so `demo/index.html#model` opens the Model sheet.
 
 ## Contents
 
@@ -488,3 +498,5 @@ src/
 ## Licence
 
 MIT.
+
+The icons on the demo's Icons sheet and in `media/icons.gif` belong to their libraries and keep their own licences: [Lucide](https://lucide.dev) (ISC), [Tabler Icons](https://tabler.io/icons) (MIT, Paweł Kuna) and [Font Awesome Free](https://fontawesome.com) (icons under CC BY 4.0, by Fonticons, Inc.). `demo/icons/fetch-icons.mjs` fetches them from each library's npm package.
