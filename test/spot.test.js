@@ -137,3 +137,10 @@ test('unknown names and bad recipes say what is wrong', () => {
   assert.throws(() => new Spot(null, 'nope'), /unknown illustration "nope".*assist/);
   assert.throws(() => new Spot(null, {}), /recipe is/);
 });
+
+test('radius squares or rounds the corners of a ready-made picture', () => {
+  const draw = (radius) => new Spot(null, 'stack', { radius, palette: { ink: '#111111', paper: '#eeeeee', accent: '#cc3300' } }).toSVG().replace(/lf\d+/g, 'lf');
+  assert.notEqual(draw(0), draw(1));
+  assert.notEqual(draw(2), draw(1));
+  assert.equal(draw(undefined), draw(1));
+});

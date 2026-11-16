@@ -11,19 +11,26 @@ import * as kit from './kit.js';
 
 const Q = Math.PI / 2;
 
+// Corner radii are scaled by the `radius` a Spot is given (see `recipes` below): below 1
+// corners turn squarer, above 1 rounder, and no corner grows past half its side.
+let round = 1;
+const corner = (r, w, h) => Math.min(r * round, w / 2, h / 2);
+const rect = (x, y, w, h, r = 0) => kit.rect(x, y, w, h, corner(r, w, h));
+const bubble = (x, y, w, h, r = 6, tail = 7) => kit.bubble(x, y, w, h, corner(r, w, h), tail);
+
 /** An assistant in a window: a chat bubble, a prompt, and two sparkles. */
 export function assist() {
   return {
     size: [240, 200],
     duration: 1700,
     parts: [
-      { shape: kit.rect(40, 44, 160, 120, 14) },
+      { shape: rect(40, 44, 160, 120, 14) },
       { shape: kit.line(40, 74, 200, 74) },
       { shape: [...kit.circle(59, 59, 3.4), ...kit.circle(74, 59, 3.4), ...kit.circle(89, 59, 3.4)], fill: 'soft', stroke: false },
-      { shape: kit.bubble(59, 90, 82, 27, 7), fill: 'tint', lift: 16, hover: [{ t: 0.3, y: -3 }, { t: 0.7, y: 0 }] },
+      { shape: bubble(59, 90, 82, 27, 7), fill: 'tint', lift: 16, hover: [{ t: 0.3, y: -3 }, { t: 0.7, y: 0 }] },
       {
         group: [
-          { shape: kit.rect(60, 131, 122, 18, 9) },
+          { shape: rect(60, 131, 122, 18, 9) },
           { shape: kit.line(72, 136.5, 72, 143.5), hover: [{ t: 0.2, opacity: 0 }, { t: 0.4, opacity: 1 }, { t: 0.6, opacity: 0 }, { t: 0.8, opacity: 1 }] },
         ],
         lift: 8,
@@ -47,11 +54,11 @@ export function paste() {
     size: [240, 200],
     duration: 1500,
     parts: [
-      { shape: kit.rect(30, 49, 95, 118, 12) },
-      { shape: kit.rect(58, 35, 38, 20, 8), fill: 'tint', lift: 6 },
+      { shape: rect(30, 49, 95, 118, 12) },
+      { shape: rect(58, 35, 38, 20, 8), fill: 'tint', lift: 6 },
       {
         group: [
-          { shape: kit.rect(40, 119, 53, 37, 8) },
+          { shape: rect(40, 119, 53, 37, 8) },
           { shape: [...kit.command(56.5, 137.5, 5.2), ...kit.polyline([[70.5, 132], [75.5, 143], [80.5, 132]])], fill: false, width: 2.1 },
         ],
         lift: 10,
@@ -59,7 +66,7 @@ export function paste() {
       },
       {
         group: [
-          { shape: sheet(kit.rect(95, 62, 75, 95, 7)) },
+          { shape: sheet(rect(95, 62, 75, 95, 7)) },
           { shape: sheet(kit.lines(108, 80, [50, 50, 50, 50, 30], 11.5)), stroke: 'soft' },
         ],
         lift: 14,
@@ -79,14 +86,14 @@ export function plugin() {
     size: [240, 200],
     duration: 1900,
     parts: [
-      { shape: kit.rect(28, 39, 138, 110, 12) },
+      { shape: rect(28, 39, 138, 110, 12) },
       { shape: kit.lines(50, 70, [64, 50, 60], 19), stroke: 'soft' },
       {
         shape: kit.rays(160, 95, 36, 52, [-0.62, 0, 0.62]), stroke: 'soft', lift: 12,
         hover: [{ t: 0.5, opacity: 0, scale: 0.7 }, { t: 0.56, opacity: 0, scale: 0.7 }, { t: 0.74, opacity: 1, scale: 1.12 }, { t: 1, scale: 1 }],
       },
       {
-        shape: [...kit.rect(137, 68, 32, 51, 5), ...kit.circle(138, 93.5, 9), ...kit.circle(168.5, 93.5, 9)], fill: 'ink', lift: 14,
+        shape: [...rect(137, 68, 32, 51, 5), ...kit.circle(138, 93.5, 9), ...kit.circle(168.5, 93.5, 9)], fill: 'ink', lift: 14,
         hover: [{ t: 0.3, x: 30, z: 26, ry: -0.6 }, { t: 0.42, x: 30, z: 26, ry: -0.6 }, { t: 0.58, x: 0, z: 0, ry: 0, ease: (t) => t * t * t }],
       },
       {
@@ -104,17 +111,17 @@ export function plugin() {
 /** Search: a lens passes over the results and one of them answers. */
 export function search() {
   const row = (y, w, hit) => [
-    { shape: kit.rect(48, y - 6, 12, 12, 4), fill: hit ? 'accent' : 'tint', stroke: false, ...(hit ? { lift: 10, hover: [{ t: 0.7 }, { t: 0.84, scale: 1.5, z: 8 }, { t: 1, scale: 1, z: 0 }] } : {}) },
+    { shape: rect(48, y - 6, 12, 12, 4), fill: hit ? 'accent' : 'tint', stroke: false, ...(hit ? { lift: 10, hover: [{ t: 0.7 }, { t: 0.84, scale: 1.5, z: 8 }, { t: 1, scale: 1, z: 0 }] } : {}) },
     { shape: kit.line(70, y, 70 + w, y), stroke: 'soft' },
   ];
   return {
     size: [240, 200],
     duration: 2100,
     parts: [
-      { shape: kit.rect(34, 38, 172, 32, 16) },
+      { shape: rect(34, 38, 172, 32, 16) },
       { shape: kit.line(52, 54, 104, 54), stroke: 'soft' },
       { shape: kit.line(112, 48.5, 112, 59.5), hover: [{ t: 0.15, opacity: 0 }, { t: 0.3, opacity: 1 }, { t: 0.45, opacity: 0 }, { t: 0.6, opacity: 1 }] },
-      { shape: kit.rect(34, 84, 172, 80, 12) },
+      { shape: rect(34, 84, 172, 80, 12) },
       ...row(104, 92), ...row(124, 70, true), ...row(144, 104),
       {
         group: [
@@ -132,20 +139,20 @@ export function search() {
 /** Settings: a switch is thrown. */
 export function toggle() {
   const on = (y) => [
-    { shape: kit.rect(148, y - 10, 36, 20, 10), fill: 'accent' },
+    { shape: rect(148, y - 10, 36, 20, 10), fill: 'accent' },
     { shape: kit.circle(174, y, 5.5), fill: 'ink' },
   ];
   return {
     size: [240, 200],
     duration: 1300,
     parts: [
-      { shape: kit.rect(40, 36, 160, 128, 14) },
+      { shape: rect(40, 36, 160, 128, 14) },
       { shape: [...kit.line(60, 66, 118, 66), ...kit.line(60, 100, 104, 100), ...kit.line(60, 134, 124, 134)], stroke: 'soft' },
       ...on(66),
       // The middle switch is off: an "on" track with an "off" one over it, which fades as the knob crosses.
-      { shape: kit.rect(148, 90, 36, 20, 10), fill: 'accent' },
-      { shape: kit.rect(148, 90, 36, 20, 10), fill: 'tint', hover: [{ t: 0.2 }, { t: 0.6, opacity: 0 }] },
-      { shape: kit.rect(148, 90, 36, 20, 10), fill: false },
+      { shape: rect(148, 90, 36, 20, 10), fill: 'accent' },
+      { shape: rect(148, 90, 36, 20, 10), fill: 'tint', hover: [{ t: 0.2 }, { t: 0.6, opacity: 0 }] },
+      { shape: rect(148, 90, 36, 20, 10), fill: false },
       { shape: kit.circle(158, 100, 5.5), fill: 'ink', lift: 12, hover: [{ t: 0.15, z: 10 }, { t: 0.65, x: 16, z: 10 }, { t: 0.85, x: 16, z: 0 }] },
       ...on(134),
       { shape: kit.sparkle(213, 31, 8), fill: 'accent', stroke: 'accent', width: 1.4, lift: 36, hover: [{ t: 0.55, opacity: 0, scale: 0.4 }, { t: 0.6, opacity: 0, scale: 0.4 }, { t: 0.85, opacity: 1, scale: 1.3, rz: Q / 2 }, { t: 1, scale: 1, rz: Q }] },
@@ -160,11 +167,11 @@ export function stack() {
     duration: 1400,
     lean: [0.16, -0.3],
     parts: [
-      { shape: kit.rect(78, 36, 124, 84, 12), fill: 'tint', hover: [{ t: 1, x: 8, y: -8 }] },
-      { shape: kit.rect(58, 58, 124, 84, 12), lift: 26 },
+      { shape: rect(78, 36, 124, 84, 12), fill: 'tint', hover: [{ t: 1, x: 8, y: -8 }] },
+      { shape: rect(58, 58, 124, 84, 12), lift: 26 },
       {
         group: [
-          { shape: kit.rect(38, 80, 124, 84, 12) },
+          { shape: rect(38, 80, 124, 84, 12) },
           { shape: kit.lines(58, 122, [70, 46], 16), stroke: 'soft' },
           { shape: kit.circle(64, 101, 7), fill: 'accent', stroke: false },
         ],
@@ -173,6 +180,12 @@ export function stack() {
       },
     ],
   };
+}
+
+/** A ready-made recipe with its corner radii scaled by `radius`. */
+export function recipeWithRadius(name, radius = 1) {
+  round = radius;
+  try { return recipes[name](); } finally { round = 1; }
 }
 
 export const recipes = { assist, paste, plugin, search, toggle, stack };

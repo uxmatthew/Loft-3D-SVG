@@ -48,7 +48,7 @@ Every animation here is drawn by Loft itself, frame by frame, as SVG.
 
 ### The demo page
 
-Open `demo/index.html` in a browser to try all of it: it loads `dist/loft.global.js` and needs no server. The home page leads to two groups, **UI** (UI illustrations, and 60 icons from three libraries that move in 3D on hover) and **Objects** (the shape morph, the shapes with their hover motions, and the rigged model in every look and layer). The bar at the top picks a design system for the whole page — Studio, Pulp, Drafting, Blueprint, Banknote or Print — and each one sets the look every drawing is made in, the accent colour for light and dark, the display face, line weights and colours, and the motion: speed, easing and how far the spots lean. It shows how one set of drawings takes on a brand. The button in the corner switches between light, dark and the system's theme. A sheet's scenes are built the first time it is opened, and the address names the sheet, so `demo/index.html#model` opens the Model sheet.
+Open `demo/index.html` in a browser to try all of it: it loads `dist/loft.global.js` and needs no server. The home page leads to two groups, **UI** (UI illustrations, and 60 icons from three libraries that move in 3D on hover) and **Objects** (the shape morph, the shapes with their hover motions, and the rigged model in every look and layer). The bar at the top picks a design system (Studio, Pulp, Drafting, Blueprint, Banknote or Print) and applies it to every drawing, never to the page around them. Each one sets the drawings' colours for light and dark (through `--loft-ink`, `--loft-paper` and `--loft-accent`, so the page keeps its own), the look the 3D shapes are made in, the line weight and corner radius of the UI illustrations and of the tile behind each icon, and the motion: speed, easing, how big it is and how far pictures lean. It shows how one set of drawings takes on a brand. The button in the corner switches between light, dark and the system's theme. A sheet's scenes are built the first time it is opened, and the address names the sheet, so `demo/index.html#model` opens the Model sheet.
 
 ## Contents
 
@@ -59,7 +59,7 @@ Open `demo/index.html` in a browser to try all of it: it loads `dist/loft.global
 - [Looks and materials](#looks-and-materials)
 - [Scenes](#scenes)
 - [Motion](#motion)
-- [Spot illustrations](#spot-illustrations)
+- [UI illustrations](#ui-illustrations)
 - [What is built in](#what-is-built-in)
 - [Theming](#theming)
 - [Rendering to a string](#rendering-to-a-string)
@@ -270,9 +270,9 @@ Easing curves: `ease.out`, `ease.enter`, `ease.inOut`, `ease.linear`, or `cubicB
 
 Because nodes and the camera are plain objects with numeric properties, GSAP, Motion and the Web Animations API can drive them too.
 
-## Spot illustrations
+## UI illustrations
 
-Small flat pictures of interface ideas: a window, a clipboard, a settings card. They are for feature cards, empty states and onboarding. At rest a spot is an ordinary flat drawing. Its parts are sheets standing in space, so on hover the parts lift off the page by different amounts, a short piece of motion plays, and the picture leans away under the pointer: not at all in the middle, more toward an edge, most in a corner.
+Small flat pictures of interface ideas: a window, a clipboard, a settings card. They are for feature cards, empty states and onboarding, and the same machinery stands icons up in 3D (see the demo's Icons sheet). In code they are called spots (`Spot`, `<loft-spot>`). At rest a spot is an ordinary flat drawing. Its parts are sheets standing in space, so on hover the parts lift off the page by different amounts, a short piece of motion plays, and the picture leans away under the pointer: not at all in the middle, more toward an edge, most in a corner.
 
 ```js
 import { Spot } from './dist/loft.js';
@@ -291,6 +291,7 @@ Ready-made: `assist`, `paste`, `plugin`, `search`, `toggle`, `stack`.
 | `duration` | per picture | Milliseconds for one pass of the motion |
 | `hold` | `450` | Milliseconds of rest between passes of a loop |
 | `stroke` | `2.6` | Line weight |
+| `radius` | `1` | Scales the corner radii of a ready-made picture: below 1 squarer, above 1 rounder. A corner never grows past half its side, so pills stay pills |
 
 Any [scene option](#scenes) works too: `label`, `palette`, `motion`.
 
@@ -424,7 +425,7 @@ Without a fixed palette the markup uses CSS variables and `color-mix()`, so it f
 
 The element exposes `.scene` and `.mesh` for scripts.
 
-The same file registers `<loft-spot>` for [spot illustrations](#spot-illustrations):
+The same file registers `<loft-spot>` for [UI illustrations](#ui-illustrations):
 
 ```html
 <a class="card" href="/paste">
@@ -472,14 +473,14 @@ The implementation follows Piegl and Tiller, *The NURBS Book* (2nd ed., Springer
 - **Shadows** fall on one ground plane, not on other objects.
 - **No trimmed surfaces, textures or transparency sorting.** `fill.opacity` works but overlapping facets will show.
 - **Path count.** A shaded shape is roughly 800 to 4,000 paths depending on size and look. One or two moving scenes per screen is comfortable; a page of twenty moving ones is not.
-- **Flat shapes** with a `layer` are drawn in layer order, not by depth. That is right for a picture that leans; it is wrong for one turned to face away. Spot illustrations are for small tilts.
+- **Flat shapes** with a `layer` are drawn in layer order, not by depth. That is right for a picture that leans; it is wrong for one turned to face away. UI illustrations are for small tilts.
 - **Perspective** drops facets that cross the near plane instead of clipping them. Keep the camera outside the scene.
 
 ## Development
 
 ```sh
 npm install     # esbuild, for bundling only
-npm test        # 51 tests: the NURBS mathematics, the renderer and the spot illustrations
+npm test        # 52 tests: the NURBS mathematics, the renderer and the UI illustrations
 npm run build   # src/ → dist/
 npm run media   # the README animations, rendered with HyperFrames into media/*.gif (needs FFmpeg and Chrome)
 ```
@@ -491,8 +492,10 @@ src/
   scene.js   Scene: mounting, framing, theming, the frame loop, toSVG
   motion.js  easing, the shared frame loop, orbit, the pause button
   shapes.js  ready-made shapes
-  spot/      spot illustrations: the outline kit, the ready-made pictures, hover motion
+  spot/      UI illustrations (spots): the outline kit, the ready-made pictures, hover motion
   element.js <loft-scene> and <loft-spot>
+demo/        the demo page: index.html, nav.js, the shape catalogue, the rigged figure, icons/
+media/       the README animations: a HyperFrames composition and the GIFs it renders
 ```
 
 ## Licence

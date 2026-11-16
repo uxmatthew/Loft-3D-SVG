@@ -75,7 +75,7 @@ if (typeof customElements !== 'undefined' && !customElements.get('loft-scene')) 
   customElements.define('loft-scene', LoftScene);
 }
 
-// <loft-spot>: a spot illustration from markup alone.
+// <loft-spot>: a UI illustration (a spot) from markup alone.
 //
 //   <loft-spot name="paste" hover="loop" label="Paste from the clipboard"></loft-spot>
 //

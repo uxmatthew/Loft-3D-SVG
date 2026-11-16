@@ -3232,14 +3232,14 @@ var Orbit = class {
       });
     }
     if (hover && typeof matchMedia === "function" && matchMedia("(hover: hover) and (pointer: fine)").matches) {
-      let rect2 = null;
+      let rect3 = null;
       on(svg, "pointerenter", () => {
-        rect2 = svg.getBoundingClientRect();
+        rect3 = svg.getBoundingClientRect();
       });
       on(svg, "pointermove", (e) => {
-        if (!rect2 || this._drag) return;
-        this._tx = ((e.clientX - rect2.left) / rect2.width - 0.5) * 2;
-        this._ty = ((e.clientY - rect2.top) / rect2.height - 0.5) * 2;
+        if (!rect3 || this._drag) return;
+        this._tx = ((e.clientX - rect3.left) / rect3.width - 0.5) * 2;
+        this._ty = ((e.clientY - rect3.top) / rect3.height - 0.5) * 2;
         scene.invalidate();
       });
       on(svg, "pointerleave", () => {
@@ -4310,18 +4310,22 @@ function shift(curves, dx = 0, dy = 0) {
 
 // src/spot/recipes.js
 var Q = Math.PI / 2;
+var round = 1;
+var corner = (r, w, h) => Math.min(r * round, w / 2, h / 2);
+var rect2 = (x, y, w, h, r = 0) => rect(x, y, w, h, corner(r, w, h));
+var bubble2 = (x, y, w, h, r = 6, tail = 7) => bubble(x, y, w, h, corner(r, w, h), tail);
 function assist() {
   return {
     size: [240, 200],
     duration: 1700,
     parts: [
-      { shape: rect(40, 44, 160, 120, 14) },
+      { shape: rect2(40, 44, 160, 120, 14) },
       { shape: line2(40, 74, 200, 74) },
       { shape: [...circle2(59, 59, 3.4), ...circle2(74, 59, 3.4), ...circle2(89, 59, 3.4)], fill: "soft", stroke: false },
-      { shape: bubble(59, 90, 82, 27, 7), fill: "tint", lift: 16, hover: [{ t: 0.3, y: -3 }, { t: 0.7, y: 0 }] },
+      { shape: bubble2(59, 90, 82, 27, 7), fill: "tint", lift: 16, hover: [{ t: 0.3, y: -3 }, { t: 0.7, y: 0 }] },
       {
         group: [
-          { shape: rect(60, 131, 122, 18, 9) },
+          { shape: rect2(60, 131, 122, 18, 9) },
           { shape: line2(72, 136.5, 72, 143.5), hover: [{ t: 0.2, opacity: 0 }, { t: 0.4, opacity: 1 }, { t: 0.6, opacity: 0 }, { t: 0.8, opacity: 1 }] }
         ],
         lift: 8
@@ -4351,11 +4355,11 @@ function paste() {
     size: [240, 200],
     duration: 1500,
     parts: [
-      { shape: rect(30, 49, 95, 118, 12) },
-      { shape: rect(58, 35, 38, 20, 8), fill: "tint", lift: 6 },
+      { shape: rect2(30, 49, 95, 118, 12) },
+      { shape: rect2(58, 35, 38, 20, 8), fill: "tint", lift: 6 },
       {
         group: [
-          { shape: rect(40, 119, 53, 37, 8) },
+          { shape: rect2(40, 119, 53, 37, 8) },
           { shape: [...command(56.5, 137.5, 5.2), ...polyline2([[70.5, 132], [75.5, 143], [80.5, 132]])], fill: false, width: 2.1 }
         ],
         lift: 10,
@@ -4363,7 +4367,7 @@ function paste() {
       },
       {
         group: [
-          { shape: sheet2(rect(95, 62, 75, 95, 7)) },
+          { shape: sheet2(rect2(95, 62, 75, 95, 7)) },
           { shape: sheet2(lines(108, 80, [50, 50, 50, 50, 30], 11.5)), stroke: "soft" }
         ],
         lift: 14,
@@ -4383,7 +4387,7 @@ function plugin() {
     size: [240, 200],
     duration: 1900,
     parts: [
-      { shape: rect(28, 39, 138, 110, 12) },
+      { shape: rect2(28, 39, 138, 110, 12) },
       { shape: lines(50, 70, [64, 50, 60], 19), stroke: "soft" },
       {
         shape: rays(160, 95, 36, 52, [-0.62, 0, 0.62]),
@@ -4392,7 +4396,7 @@ function plugin() {
         hover: [{ t: 0.5, opacity: 0, scale: 0.7 }, { t: 0.56, opacity: 0, scale: 0.7 }, { t: 0.74, opacity: 1, scale: 1.12 }, { t: 1, scale: 1 }]
       },
       {
-        shape: [...rect(137, 68, 32, 51, 5), ...circle2(138, 93.5, 9), ...circle2(168.5, 93.5, 9)],
+        shape: [...rect2(137, 68, 32, 51, 5), ...circle2(138, 93.5, 9), ...circle2(168.5, 93.5, 9)],
         fill: "ink",
         lift: 14,
         hover: [{ t: 0.3, x: 30, z: 26, ry: -0.6 }, { t: 0.42, x: 30, z: 26, ry: -0.6 }, { t: 0.58, x: 0, z: 0, ry: 0, ease: (t) => t * t * t }]
@@ -4410,17 +4414,17 @@ function plugin() {
 }
 function search() {
   const row = (y, w, hit) => [
-    { shape: rect(48, y - 6, 12, 12, 4), fill: hit ? "accent" : "tint", stroke: false, ...hit ? { lift: 10, hover: [{ t: 0.7 }, { t: 0.84, scale: 1.5, z: 8 }, { t: 1, scale: 1, z: 0 }] } : {} },
+    { shape: rect2(48, y - 6, 12, 12, 4), fill: hit ? "accent" : "tint", stroke: false, ...hit ? { lift: 10, hover: [{ t: 0.7 }, { t: 0.84, scale: 1.5, z: 8 }, { t: 1, scale: 1, z: 0 }] } : {} },
     { shape: line2(70, y, 70 + w, y), stroke: "soft" }
   ];
   return {
     size: [240, 200],
     duration: 2100,
     parts: [
-      { shape: rect(34, 38, 172, 32, 16) },
+      { shape: rect2(34, 38, 172, 32, 16) },
       { shape: line2(52, 54, 104, 54), stroke: "soft" },
       { shape: line2(112, 48.5, 112, 59.5), hover: [{ t: 0.15, opacity: 0 }, { t: 0.3, opacity: 1 }, { t: 0.45, opacity: 0 }, { t: 0.6, opacity: 1 }] },
-      { shape: rect(34, 84, 172, 80, 12) },
+      { shape: rect2(34, 84, 172, 80, 12) },
       ...row(104, 92),
       ...row(124, 70, true),
       ...row(144, 104),
@@ -4438,20 +4442,20 @@ function search() {
 }
 function toggle() {
   const on = (y) => [
-    { shape: rect(148, y - 10, 36, 20, 10), fill: "accent" },
+    { shape: rect2(148, y - 10, 36, 20, 10), fill: "accent" },
     { shape: circle2(174, y, 5.5), fill: "ink" }
   ];
   return {
     size: [240, 200],
     duration: 1300,
     parts: [
-      { shape: rect(40, 36, 160, 128, 14) },
+      { shape: rect2(40, 36, 160, 128, 14) },
       { shape: [...line2(60, 66, 118, 66), ...line2(60, 100, 104, 100), ...line2(60, 134, 124, 134)], stroke: "soft" },
       ...on(66),
       // The middle switch is off: an "on" track with an "off" one over it, which fades as the knob crosses.
-      { shape: rect(148, 90, 36, 20, 10), fill: "accent" },
-      { shape: rect(148, 90, 36, 20, 10), fill: "tint", hover: [{ t: 0.2 }, { t: 0.6, opacity: 0 }] },
-      { shape: rect(148, 90, 36, 20, 10), fill: false },
+      { shape: rect2(148, 90, 36, 20, 10), fill: "accent" },
+      { shape: rect2(148, 90, 36, 20, 10), fill: "tint", hover: [{ t: 0.2 }, { t: 0.6, opacity: 0 }] },
+      { shape: rect2(148, 90, 36, 20, 10), fill: false },
       { shape: circle2(158, 100, 5.5), fill: "ink", lift: 12, hover: [{ t: 0.15, z: 10 }, { t: 0.65, x: 16, z: 10 }, { t: 0.85, x: 16, z: 0 }] },
       ...on(134),
       { shape: sparkle(213, 31, 8), fill: "accent", stroke: "accent", width: 1.4, lift: 36, hover: [{ t: 0.55, opacity: 0, scale: 0.4 }, { t: 0.6, opacity: 0, scale: 0.4 }, { t: 0.85, opacity: 1, scale: 1.3, rz: Q / 2 }, { t: 1, scale: 1, rz: Q }] }
@@ -4464,11 +4468,11 @@ function stack() {
     duration: 1400,
     lean: [0.16, -0.3],
     parts: [
-      { shape: rect(78, 36, 124, 84, 12), fill: "tint", hover: [{ t: 1, x: 8, y: -8 }] },
-      { shape: rect(58, 58, 124, 84, 12), lift: 26 },
+      { shape: rect2(78, 36, 124, 84, 12), fill: "tint", hover: [{ t: 1, x: 8, y: -8 }] },
+      { shape: rect2(58, 58, 124, 84, 12), lift: 26 },
       {
         group: [
-          { shape: rect(38, 80, 124, 84, 12) },
+          { shape: rect2(38, 80, 124, 84, 12) },
           { shape: lines(58, 122, [70, 46], 16), stroke: "soft" },
           { shape: circle2(64, 101, 7), fill: "accent", stroke: false }
         ],
@@ -4477,6 +4481,14 @@ function stack() {
       }
     ]
   };
+}
+function recipeWithRadius(name, radius = 1) {
+  round = radius;
+  try {
+    return recipes[name]();
+  } finally {
+    round = 1;
+  }
 }
 var recipes = { assist, paste, plugin, search, toggle, stack };
 
@@ -4523,10 +4535,10 @@ var Spot = class {
   constructor(target, recipe = "assist", options = {}) {
     if (typeof recipe === "string") {
       if (!recipes[recipe]) throw new Error(`Spot: unknown illustration "${recipe}". Ready-made ones: ${Object.keys(recipes).join(", ")}.`);
-      recipe = recipes[recipe]();
+      recipe = recipeWithRadius(recipe, options.radius ?? 1);
     } else if (typeof recipe === "function") recipe = recipe();
     if (!recipe || !Array.isArray(recipe.parts)) throw new Error("Spot: a recipe is { size: [width, height], parts: [...] }");
-    const { hover = "loop", trigger, lean, follow = 0.32, duration, hold, stroke, ...sceneOptions } = options;
+    const { hover = "loop", trigger, lean, follow = 0.32, duration, hold, stroke, radius, ...sceneOptions } = options;
     const [W, H] = this.size = recipe.size || [240, 200];
     this.hover = hover;
     this.follow = follow;
@@ -4610,15 +4622,15 @@ var Spot = class {
       el.addEventListener(type, fn);
       this._off.push(() => el.removeEventListener(type, fn));
     };
-    let rect2 = null;
+    let rect3 = null;
     const point = (e) => {
-      if (!rect2 || e.pointerType === "touch") return;
+      if (!rect3 || e.pointerType === "touch") return;
       this._pointer = true;
-      this._tx = clamp1(((e.clientX - rect2.left) / rect2.width - 0.5) * 2);
-      this._ty = clamp1(((e.clientY - rect2.top) / rect2.height - 0.5) * 2);
+      this._tx = clamp1(((e.clientX - rect3.left) / rect3.width - 0.5) * 2);
+      this._ty = clamp1(((e.clientY - rect3.top) / rect3.height - 0.5) * 2);
     };
     on("pointerenter", (e) => {
-      rect2 = el.getBoundingClientRect();
+      rect3 = el.getBoundingClientRect();
       point(e);
       this._over = true;
       this._sync();
@@ -4683,8 +4695,8 @@ var Spot = class {
   /** Where the lean is heading: after the pointer when there is one, else the picture's own lean. */
   _aim() {
     if (!this._pointer || !this.follow) return this._pointer ? [0, 0] : this.lean;
-    const x = this._tx, y = this._ty, corner = 1 + 0.2 * Math.abs(x * y);
-    return [-0.8 * this.follow * swell(y) * corner, this.follow * swell(x) * corner];
+    const x = this._tx, y = this._ty, corner2 = 1 + 0.2 * Math.abs(x * y);
+    return [-0.8 * this.follow * swell(y) * corner2, this.follow * swell(x) * corner2];
   }
   _advance(dt) {
     if (this._wait > 0) {

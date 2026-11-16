@@ -197,7 +197,7 @@
         w.scene.render();
       });
 
-      // ── Six spot illustrations, each pointed at in turn ──────────────────
+      // ── Six UI illustrations, each pointed at in turn ──────────────────
       const spotNames = Object.keys(Loft.spots);
       const spots = cells('spot-grid', spotNames.map((n) => `new Spot(el, '${n}')`)).map((el, k) => { const s = new Spot(el, spotNames[k], { palette, hover: false, follow: 0 }); pin(s.scene); return s; });
       const drawSpots = (t) => spots.forEach((s) => {

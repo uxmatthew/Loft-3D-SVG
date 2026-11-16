@@ -188,7 +188,7 @@
     if (next && next !== current) go(next, { travel: 'instant' });
   });
 
-  // ── The look picker floats under the bar and keeps the chosen look in view ──
+  // ── The design-system picker floats under the bar and keeps the chosen one in view ──
   const looks = document.getElementById('looks');
   if (looks) {
     const scroller = looks.parentElement;

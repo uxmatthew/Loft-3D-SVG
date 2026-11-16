@@ -452,7 +452,7 @@ export namespace math {
   function transformDirection(m: Mat4, v: number[]): Vec3;
 }
 
-// ── Spot illustrations ──────────────────────────────────────────────────────
+// ── UI illustrations (spots) ────────────────────────────────────────────────────
 
 /** Offsets from rest. x, y, z are artboard units (y down, z toward the viewer); angles are radians. */
 export interface SpotPose {
@@ -515,6 +515,8 @@ export interface SpotOptions extends SceneOptions {
   duration?: number;
   hold?: number;
   stroke?: number;
+  /** Scales the corner radii of a ready-made illustration: below 1 squarer, above 1 rounder. Default 1. */
+  radius?: number;
 }
 export class Spot {
   constructor(target: Element | string | null, recipe?: SpotName | SpotRecipe | (() => SpotRecipe), options?: SpotOptions);

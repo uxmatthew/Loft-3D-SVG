@@ -30,14 +30,37 @@
   const LENGTHS = ['x', 'y', 'z']; // these scale with the icon's box; turns and scale do not
   const sized = (keys, f) => keys.map((k) => Object.fromEntries(Object.entries(k).map(([p, v]) => [p, LENGTHS.includes(p) ? v * f : v])));
 
-  /** The spot recipe for one icon of a library. */
-  const recipe = (lib, icon) => {
+  // How big a motion is: `energy` above 1 throws every offset, turn and swell further.
+  const energise = (keys, k) => keys.map((key) => Object.fromEntries(Object.entries(key).map(([p, v]) =>
+    [p, p === 't' || p === 'ease' ? v : p === 'scale' ? 1 + (v - 1) * k : (p === 'rx' || p === 'ry') && Math.abs(v) >= Math.PI ? v : v * k])));
+
+  /**
+   * The spot recipe for one icon of a library. A design system can set `width` (stroke
+   * weight), `color` (a palette word or CSS colour for the strokes or fill), `accent` (the
+   * colour of a stroke icon's foremost outline), `energy` (how big the motion is) and `tile`
+   * (how round the paper tile behind it is).
+   */
+  const recipe = (lib, icon, { width = 2.2, color = 'ink', accent = color, energy = 1, tile = 1 } = {}) => {
     const [, , w, h] = icon.box, f = Math.max(w, h) / 24, move = motions[icon.concept];
-    const keys = Array.isArray(move) ? move : move.keys;
+    const keys = energise(Array.isArray(move) ? move : move.keys, energy);
+    const last = icon.paths.length - 1;
+    // The icon sits on a tile of paper, like an app icon, a margin of 6 units all round.
+    // `tile` scales its corner radius, from square (0) to a circle (2.3 or more).
+    const m = 6 * f, W = w + 2 * m, H = h + 2 * m, side = Math.min(W, H);
     // Each outline of a stroke icon stands a little further forward than the one before.
-    const style = lib.kind === 'fill' ? { fill: 'ink', stroke: false } : { fill: false, stroke: 'ink', width: 2.2 };
-    const parts = icon.paths.map((d, k) => ({ shape: kit.path(d), ...style, lift: (lib.kind === 'fill' ? 4 : 2 + 2.5 * k) * f }));
-    return { size: [w, h], parts: [{ group: parts, hover: sized(keys, f), ...(move.pivot ? { pivot: move.pivot.map((v) => v * f) } : {}) }] };
+    const parts = icon.paths.map((d, k) => ({
+      shape: kit.shift(kit.path(d), m, m),
+      ...(lib.kind === 'fill' ? { fill: color, stroke: false } : { fill: false, stroke: k === last && last > 0 ? accent : color, width }),
+      lift: (lib.kind === 'fill' ? 4 : 2 + 2.5 * k) * f * energy,
+    }));
+    const pivot = move.pivot ? move.pivot.map((v) => v * f + m) : null;
+    return {
+      size: [W, H],
+      parts: [
+        { shape: kit.rect(0, 0, W, H, Math.min(side / 2, side * 0.22 * tile)), fill: 'paper', stroke: false },
+        { group: parts, hover: sized(keys, f), ...(pivot ? { pivot } : {}) },
+      ],
+    };
   };
 
   window.LoftIconSpots = { recipe, motions };

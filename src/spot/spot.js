@@ -6,7 +6,7 @@
 import { Scene } from '../scene.js';
 import { Node, ShapeMesh } from '../render/node.js';
 import { ease } from '../motion.js';
-import { recipes } from './recipes.js';
+import { recipes, recipeWithRadius } from './recipes.js';
 
 const REST = { x: 0, y: 0, z: 0, rx: 0, ry: 0, rz: 0, scale: 1, opacity: 1 };
 const PROPS = Object.keys(REST);
@@ -64,10 +64,10 @@ export class Spot {
   constructor(target, recipe = 'assist', options = {}) {
     if (typeof recipe === 'string') {
       if (!recipes[recipe]) throw new Error(`Spot: unknown illustration "${recipe}". Ready-made ones: ${Object.keys(recipes).join(', ')}.`);
-      recipe = recipes[recipe]();
+      recipe = recipeWithRadius(recipe, options.radius ?? 1);
     } else if (typeof recipe === 'function') recipe = recipe();
     if (!recipe || !Array.isArray(recipe.parts)) throw new Error('Spot: a recipe is { size: [width, height], parts: [...] }');
-    const { hover = 'loop', trigger, lean, follow = 0.32, duration, hold, stroke, ...sceneOptions } = options;
+    const { hover = 'loop', trigger, lean, follow = 0.32, duration, hold, stroke, radius, ...sceneOptions } = options;
     const [W, H] = (this.size = recipe.size || [240, 200]);
     /** 'loop', 'once' or false. Change it at any time. */
     this.hover = hover;
