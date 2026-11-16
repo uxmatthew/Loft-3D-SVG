@@ -1,0 +1,48 @@
+{
+  "name": "loft-svg",
+  "version": "0.1.0",
+  "description": "NURBS curves and surfaces drawn as plain SVG: 3D illustrations and animations for the web without canvas or WebGL.",
+  "type": "module",
+  "main": "./dist/loft.js",
+  "module": "./dist/loft.js",
+  "types": "./types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./types/index.d.ts",
+      "import": "./dist/loft.js"
+    },
+    "./element": "./dist/loft-element.js",
+    "./src/*": "./src/*"
+  },
+  "files": [
+    "dist",
+    "src",
+    "types",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": [
+    "./src/element.js",
+    "./dist/loft-element.js",
+    "./dist/loft.global.js"
+  ],
+  "scripts": {
+    "test": "node --test",
+    "build": "node build.mjs",
+    "demo": "node build.mjs && npx --yes serve -l 4173 .",
+    "media": "node media/build.mjs"
+  },
+  "keywords": [
+    "nurbs",
+    "svg",
+    "3d",
+    "b-spline",
+    "illustration",
+    "animation",
+    "no-webgl"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}

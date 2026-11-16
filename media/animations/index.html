@@ -1,0 +1,211 @@
+<!doctype html>
+<!--
+  The README animations: six clips back to back, each drawn by Loft from timeline time.
+  `npm run media` (in the repository root) copies Loft and the demo's shapes into assets/,
+  renders this to MP4 with HyperFrames, and cuts one GIF per clip into media/.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1200, height=600" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+    <script src="assets/loft.global.js"></script>
+    <script src="assets/figure.js"></script>
+    <script src="assets/catalogue.js"></script>
+    <style>
+      :root {
+        --bg: #e4ebea;
+        --ink: #11242e;
+        --muted: #4d5e67;
+        --line: rgb(17 36 46 / 0.18);
+        --mono: "IBM Plex Mono", monospace;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1200px; height: 600px; overflow: hidden; background: var(--bg); }
+      #root { position: relative; width: 100%; height: 100%; color: var(--ink); font-family: var(--mono); }
+      .clip { position: absolute; inset: 0; background: var(--bg); }
+      .tag { font-size: 15px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+      .tag b { color: var(--ink); font-weight: 400; }
+      .corner { position: absolute; left: 40px; top: 32px; }
+
+      /* One big stage */
+      .solo { position: absolute; left: 300px; top: 30px; width: 600px; height: 540px; }
+      .looks { position: absolute; left: 40px; bottom: 32px; display: flex; gap: 0; border: 1px solid var(--line); }
+      .looks span { padding: 10px 16px; font-size: 14px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+      .looks span + span { border-left: 1px solid var(--line); }
+      .looks span.on { background: var(--ink); color: var(--bg); }
+
+      /* A ruled grid of cells, each a stage and a label */
+      .grid { position: absolute; left: 40px; right: 40px; top: 76px; bottom: 32px; display: grid; gap: 1px; background: var(--line); border: 1px solid var(--line); }
+      .grid--8 { grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(2, 1fr); }
+      .grid--6 { grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr); }
+      .grid--3 { grid-template-columns: repeat(3, 1fr); }
+      .cell { position: relative; background: var(--bg); }
+      .cell .stage { position: absolute; inset: 6px 6px 34px; }
+      .cell .tag { position: absolute; left: 14px; bottom: 10px; font-size: 13px; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="26" data-width="1200" data-height="600">
+      <section id="looks" class="clip" data-start="0" data-duration="6" data-track-index="0">
+        <div class="corner tag">One surface · <b>six looks</b></div>
+        <div class="solo" id="looks-stage"></div>
+        <div class="looks" id="looks-names"></div>
+      </section>
+
+      <section id="grow" class="clip" data-start="6" data-duration="4" data-track-index="0">
+        <div class="corner tag">Shapes · <b>grow</b> · mesh.range = { v: [0, t] }</div>
+        <div class="grid grid--8" id="grow-grid"></div>
+      </section>
+
+      <section id="morph" class="clip" data-start="10" data-duration="4" data-track-index="0">
+        <div class="corner tag">Shapes · <b>morph</b> · morph(a, b).t = t</div>
+        <div class="grid grid--8" id="morph-grid"></div>
+      </section>
+
+      <section id="rotate" class="clip" data-start="14" data-duration="4" data-track-index="0">
+        <div class="corner tag">Shapes · <b>rotate</b> · scene.orbit({ auto })</div>
+        <div class="grid grid--8" id="rotate-grid"></div>
+      </section>
+
+      <section id="model" class="clip" data-start="18" data-duration="4" data-track-index="0">
+        <div class="corner tag">A rigged Blender model · <b>walking</b></div>
+        <div class="grid grid--3" id="model-grid"></div>
+      </section>
+
+      <section id="spots" class="clip" data-start="22" data-duration="4" data-track-index="0">
+        <div class="corner tag">Spot illustrations · <b>on hover</b></div>
+        <div class="grid grid--6" id="spot-grid"></div>
+      </section>
+    </div>
+
+    <script>
+      const { Scene, Spot, morph, resolveMaterial } = Loft;
+      const { entries, reshape, dress } = LoftCatalogue;
+      const palette = { ink: '#11242E', paper: '#E4EBEA', accent: '#B5462B' };
+      const TAU = Math.PI * 2;
+      const smooth = (x) => (x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x));
+      const quiet = { palette, pauseButton: false, motion: 'always' };
+      // Loft lowers a scene's detail when its own frames run slow (scene.lod). Every frame here
+      // is drawn from timeline time instead, so detail is pinned and each frame depends on t alone.
+      const pin = (scene) => { Object.defineProperty(scene, 'lod', { get: () => 1, set() {} }); return scene; };
+      const _Scene = Scene;
+      const Pinned = function (...args) { return pin(new _Scene(...args)); };
+
+      const cells = (gridId, labels) =>
+        labels.map((label) => {
+          const cell = document.createElement('div');
+          cell.className = 'cell';
+          cell.innerHTML = `<div class="stage"></div><span class="tag">${label}</span>`;
+          document.getElementById(gridId).appendChild(cell);
+          return cell.firstChild;
+        });
+
+      // ── Six looks on one turning vase ────────────────────────────────────
+      const lookNames = Object.keys(Loft.looks);
+      const names = document.getElementById('looks-names');
+      for (const n of lookNames) names.insertAdjacentHTML('beforeend', `<span>${n}</span>`);
+      const looksScene = new Pinned('#looks-stage', { ...quiet, camera: { azimuth: 0.7, elevation: 0.3 }, padding: 0.06, shadow: true });
+      const vase = entries[0];
+      const looksMesh = looksScene.add(vase.make(), dress(vase, 'clay'));
+      let lookOn = -1;
+      const drawLooks = (t) => {
+        const k = Math.min(lookNames.length - 1, Math.floor(t));
+        if (k !== lookOn) {
+          lookOn = k;
+          looksMesh.material = dress(vase, lookNames[k]);
+          [...names.children].forEach((s, i) => s.classList.toggle('on', i === k));
+        }
+        looksMesh.rotation.y = (t / 6) * TAU;
+        looksScene.render();
+      };
+
+      // ── The eight shapes: grow, morph, rotate ────────────────────────────
+      const shapeGrid = (gridId) =>
+        cells(gridId, entries.map((e) => `${e.name} · ${e.code}`)).map((el, k) => {
+          const e = entries[k];
+          const scene = new Pinned(el, { ...quiet, camera: { azimuth: 0.7, elevation: e.elevation }, padding: 0.1 });
+          const g = e.make(), target = reshape(g, e.into), blend = morph(g, target);
+          scene.add(target, { fill: false }); // frames the whole morph
+          const mesh = scene.add(blend, dress(e, 'clay'));
+          if (e.deform) mesh.deform = e.deform;
+          return { scene, mesh, blend };
+        });
+      const growing = shapeGrid('grow-grid'), morphing = shapeGrid('morph-grid'), turning = shapeGrid('rotate-grid');
+      const tick = (s, t) => { s.scene.time = t; s.scene.render(); };
+      const drawGrow = (t) => growing.forEach((s, k) => {
+        // Each grows in turn, holds, and is whole again by the loop's end.
+        const p = smooth((t - 0.15 * k) / 1.6);
+        s.mesh.range = { v: [0, Math.max(0.001, p)] };
+        tick(s, t);
+      });
+      const drawMorph = (t) => morphing.forEach((s) => {
+        s.blend.t = smooth((t - 0.2) / 1.2) - smooth((t - 2.3) / 1.2);
+        tick(s, t);
+      });
+      const drawRotate = (t) => turning.forEach((s) => {
+        s.mesh.rotation.y = (t / 4) * TAU;
+        tick(s, t);
+      });
+
+      // ── The figure, walking, in three looks ──────────────────────────────
+      const figure = LoftDemoModels.figure;
+      const boxRamp = (color) => {
+        const [night, deep, shade, , , body, light] = Loft.looks.toon().fill.ramp(color);
+        return [night, deep, shade, body, body, body, light];
+      };
+      const figureLooks = [
+        ['clay', (n, part) => ({ look: 'clay', color: { head: palette.accent, arm: palette.accent, torso: '#A9B2B1', leg: '#5B6870' }[part], fill: { facets: true } })],
+        ['toon', (n, part) => ({ look: 'toon', color: { torso: '#E94225', leg: '#766B52' }[part], fill: { facets: true, ramp: boxRamp } })],
+        ['ink', (n) => ({ look: 'ink', lines: { u: n.u, v: n.v } })],
+      ];
+      const walkers = cells('model-grid', figureLooks.map(([n]) => n)).map((el, k) => {
+        const scene = new Pinned(el, { ...quiet, camera: { azimuth: 0.55, elevation: 0.2 }, padding: 0.08, shadow: true });
+        const meshes = figure.parts.map((part) => {
+          const n = LoftDemoModels.prism(part.rings, part.pivot, 4);
+          return scene.add(n.surface, figureLooks[k][1](n, part.name.split('-')[0]), { position: part.pivot });
+        });
+        const limbs = figure.parts.map((part, i) => ({ part, mesh: meshes[i], home: part.pivot[0] })).filter((l) => /^(arm|leg)/.test(l.part.name));
+        for (const l of limbs) {
+          l.side = l.part.name.endsWith('left') ? 1 : -1;
+          l.lead = l.part.name === 'leg-left' || l.part.name === 'arm-right' ? 1 : -1;
+        }
+        return { scene, limbs, head: meshes[figure.parts.findIndex((p) => p.name === 'head')] };
+      });
+      const drawModel = (t) => walkers.forEach((w) => {
+        const a = (t / 4) * TAU * 4; // four strides, so the loop is seamless
+        for (const l of w.limbs) {
+          l.mesh.rotation.x = l.lead * 0.55 * Math.sin(a);
+          l.mesh.position.x = l.home + l.side * 0.03;
+        }
+        w.head.rotation.y = 0.14 * Math.sin(a / 2);
+        w.scene.render();
+      });
+
+      // ── Six spot illustrations, each pointed at in turn ──────────────────
+      const spotNames = Object.keys(Loft.spots);
+      const spots = cells('spot-grid', spotNames.map((n) => `new Spot(el, '${n}')`)).map((el, k) => { const s = new Spot(el, spotNames[k], { palette, hover: false, follow: 0 }); pin(s.scene); return s; });
+      const drawSpots = (t) => spots.forEach((s) => {
+        const weight = smooth(t / 0.4) - smooth((t - 3.5) / 0.4);
+        s.pose(Math.min(1, Math.max(0, (t - 0.2) / 3.2)), weight);
+        s.scene.render();
+      });
+
+      // ── One paused timeline: each clip draws from its own time ───────────
+      const tl = gsap.timeline({ paused: true });
+      const clip = (start, duration, draw) => {
+        const state = { t: 0 };
+        tl.fromTo(state, { t: 0 }, { t: duration, duration, ease: 'none', immediateRender: start === 0, onUpdate: () => draw(state.t) }, start);
+        draw(0);
+      };
+      clip(0, 6, drawLooks);
+      clip(6, 4, drawGrow);
+      clip(10, 4, drawMorph);
+      clip(14, 4, drawRotate);
+      clip(18, 4, drawModel);
+      clip(22, 4, drawSpots);
+      window.__timelines['main'] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>

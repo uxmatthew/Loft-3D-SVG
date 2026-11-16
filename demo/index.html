@@ -1,0 +1,1137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script>
+  document.documentElement.classList.add('js');
+  // The theme chosen with the button in the bar (light, dark, or none for the system's), before anything paints.
+  try { const t = localStorage.getItem('loft-theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch { /* storage is off */ }
+</script>
+<title>Loft: 3D illustration for the web, drawn as SVG</title>
+<meta name="description" content="Loft is a JavaScript library that builds 3D shapes from NURBS and draws them as plain SVG paths. No canvas, no WebGL.">
+<meta name="theme-color" content="#E4EBEA" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0D1A20" media="(prefers-color-scheme: dark)">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=B612:wght@400;700&family=B612+Mono&family=Michroma&family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Literata:opsz,wght@7..72,400..700&family=Sora:wght@400..700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* Drafting film, drawing ink, red-lead hull paint */
+    --bg: #E4EBEA;
+    --surface: #EEF3F2;
+    --ink: #11242E;
+    --muted: #4D5E67;
+    --accent: #B5462B;
+    --line: color-mix(in oklab, var(--ink) 18%, transparent);
+    --ease: cubic-bezier(.2, .8, .2, 1);
+    --ease-enter: cubic-bezier(.22, 1, .36, 1);
+    --display: "Michroma", "Eurostile", "Arial Black", sans-serif;
+    --body: "B612", Verdana, sans-serif;
+    --mono: "B612 Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    --gutter: clamp(16px, 4vw, 48px);
+    /* The bar at the top and a group's row of tabs, each with its rule. The tabs stick under the bar. */
+    --bar-h: 61px;
+    --sub-h: 49px;
+    /* The look picker floats under them: the gap above it, and its height. It takes no room without script. */
+    --float-gap: 12px;
+    --look-h: 42px;
+    --float-h: 0px;
+    --lift: 0 1px 2px rgb(17 36 46 / .06), 0 10px 24px -10px rgb(17 36 46 / .3);
+    color-scheme: light dark;
+  }
+  @media (max-width: 899px) { :root { --bar-h: 47px; --sub-h: 45px; --float-gap: 10px; } }
+  @media (pointer: coarse) { :root { --look-h: 46px; } }
+  .js { --float-h: calc(var(--float-gap) + var(--look-h)); }
+  :root[data-theme="light"] { color-scheme: light; }
+  :root[data-theme="dark"] { color-scheme: dark; --bg: #0D1A20; --surface: #14262E; --ink: #E2EBEA; --muted: #9AABB1; --accent: #E2714C; --lift: 0 1px 2px rgb(0 0 0 / .4), 0 12px 28px -10px rgb(0 0 0 / .75); }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --bg: #0D1A20; --surface: #14262E; --ink: #E2EBEA; --muted: #9AABB1; --accent: #E2714C; --lift: 0 1px 2px rgb(0 0 0 / .4), 0 12px 28px -10px rgb(0 0 0 / .75); }
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 400 1.0625rem/1.6 var(--body);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: clip;
+  }
+  h1, h2, h3, p, ul, dl, dd, pre { margin: 0; }
+  ul { padding: 0; list-style: none; }
+  a { color: inherit; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .wrap { width: min(1200px, 100% - 2 * var(--gutter)); margin-inline: auto; }
+  .skip { position: absolute; left: var(--gutter); top: -60px; z-index: 30; padding: 10px 14px; background: var(--ink); color: var(--bg); }
+  .skip:focus { top: 8px; }
+
+  /* Type */
+  .display { font-family: var(--display); font-weight: 400; letter-spacing: -0.012em; text-wrap: balance; }
+  h1.display { font-size: clamp(1.7rem, 1.05rem + 2.5vw, 3.1rem); line-height: 1.16; }
+  h2.display { font-size: clamp(1.3rem, 1rem + 1.25vw, 2rem); line-height: 1.22; max-width: 24ch; }
+  h3 { font: 700 1rem/1.3 var(--body); }
+  .lead { max-width: 58ch; color: var(--muted); text-wrap: pretty; }
+  .tag { font: 400 .75rem/1.3 var(--mono); letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
+  code, pre { font-family: var(--mono); font-size: .8125rem; }
+
+  /* Links: a hairline at rest, an ink line drawn on hover */
+  .link {
+    text-decoration: none;
+    background: linear-gradient(currentColor, currentColor) 0 100% / 0 1px no-repeat,
+                linear-gradient(var(--line), var(--line)) 0 100% / 100% 1px no-repeat;
+    transition: background-size .15s var(--ease);
+  }
+  .link:hover, .link:focus-visible { background-size: 100% 1px, 100% 1px; }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-height: 46px; padding: 0 20px;
+    font: 700 .9375rem/1 var(--body); text-decoration: none;
+    color: var(--bg); background: var(--ink);
+    border: 1px solid var(--ink); border-radius: 2px; cursor: pointer;
+    transition: transform .15s var(--ease), background-color .15s var(--ease), border-color .15s var(--ease), color .15s var(--ease);
+  }
+  .btn--quiet { color: var(--ink); background: transparent; border-color: var(--line); }
+  @media (hover: hover) and (pointer: fine) {
+    .btn:hover { transform: translateY(-1px); background: color-mix(in oklab, var(--ink) 82%, var(--accent)); }
+    .btn--quiet:hover { background: color-mix(in oklab, var(--ink) 7%, transparent); border-color: var(--ink); }
+  }
+  .btn:active { transform: translateY(1px) scale(.985); transition-duration: .09s; }
+
+  /* The bar: the mark and the three groups. It stays at the top. */
+  .bar, .subnav { background: color-mix(in oklab, var(--bg) 92%, transparent); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+  .bar { position: sticky; top: 0; z-index: 20; border-bottom: 1px solid var(--line); }
+  .bar__in { display: grid; grid-template-areas: "mark majors theme"; grid-template-columns: auto minmax(0, 1fr) auto; column-gap: clamp(20px, 3.2vw, 44px); height: calc(var(--bar-h) - 1px); align-items: center; }
+  .mark { grid-area: mark; font-family: var(--display); font-size: 1.05rem; letter-spacing: .02em; text-decoration: none; display: inline-flex; align-items: center; min-height: 44px; }
+  .majors { grid-area: majors; align-self: stretch; display: flex; }
+  .majors .tabs a { font-weight: 700; }
+  @media (max-width: 899px) { .majors { justify-self: end; } }
+  /* Light, dark or the system's: one button that shows what the next press gives, and turns to it */
+  .theme { grid-area: theme; display: grid; place-items: center; width: 44px; height: 44px; margin-right: -10px; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--ink); cursor: pointer; transition: background-color .15s var(--ease); }
+  .theme:hover { background: color-mix(in oklab, var(--ink) 8%, transparent); }
+  .theme svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; transform: rotate(var(--turn, 0deg)); transition: transform .45s var(--ease-enter); }
+  .theme svg > g { display: none; }
+  .theme[data-next="light"] .i-light, .theme[data-next="dark"] .i-dark, .theme[data-next="system"] .i-system { display: inline; }
+  @media (prefers-reduced-motion: reduce) { .theme svg { transition: none; } }
+
+  /* The look every drawing on the page is made in. Its picker floats under the bar and stays as the page
+     scrolls. When a group's row of tabs comes up under the bar, the picker slips beneath the row and comes
+     out below it (nav.js says when); it sits above the page but under both bars. */
+  .float { position: sticky; top: var(--bar-h); z-index: 14; height: var(--float-h); pointer-events: none; }
+  .float__in { display: flex; justify-content: flex-end; padding-top: var(--float-gap); }
+  .looks {
+    display: flex; min-width: 0; max-width: 100%; height: var(--look-h); pointer-events: auto;
+    background: color-mix(in oklab, var(--surface) 86%, transparent); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+    border: 1px solid var(--line); border-radius: 2px; box-shadow: var(--lift);
+  }
+  .tabs-ready .looks { transition: transform .36s var(--ease-enter); }
+  .float.is-low .looks { transform: translateY(var(--sub-h)); }
+  .looks__label { display: flex; align-items: center; flex: none; padding-inline: 14px; border-right: 1px solid var(--line); }
+  .looks__label > span + span { display: none; }
+  .looks__scroll { position: relative; min-width: 0; overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; }
+  .looks__scroll::-webkit-scrollbar { display: none; }
+  html:not(.js) .float { display: none; }
+  @media (prefers-reduced-motion: reduce) { .tabs-ready .looks { transition: none; } }
+  /* Where the row is tight, the label is cut to "Draw as" */
+  @media (max-width: 679px) {
+    .looks__label > span { display: none; }
+    .looks__label > span + span { display: inline; }
+  }
+
+  /* Tabs, in the bar and under the hero: the one under way is underlined in the accent, and the line slides to the next */
+  .tabs { position: relative; display: flex; gap: clamp(18px, 2.6vw, 34px); min-width: 0; height: 100%; overflow-x: auto; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tabs a { display: flex; align-items: center; flex: none; padding-inline: 2px; font-size: .9375rem; white-space: nowrap; text-decoration: none; color: var(--muted); transition: color .15s var(--ease); }
+  .tabs a:hover, .tabs a[aria-current] { color: var(--ink); }
+  .tabs a:focus-visible { outline-offset: -2px; }
+  .tabs__bar { position: absolute; left: 0; bottom: 0; width: var(--w, 0px); height: 2px; background: var(--accent); transform: translateX(var(--x, 0px)); pointer-events: none; }
+  .tabs-ready .tabs__bar { transition: transform .38s var(--ease-enter), width .38s var(--ease-enter); }
+  html:not(.js) .tabs__bar { display: none; }
+  /* A row that scrolls sideways fades at whichever end has more beyond it. */
+  .more-after { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); }
+  .more-before { -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 32px), transparent); mask-image: linear-gradient(to left, #000 calc(100% - 32px), transparent); }
+  .more-before.more-after { -webkit-mask-image: linear-gradient(to right, transparent, #000 32px, #000 calc(100% - 32px), transparent); mask-image: linear-gradient(to right, transparent, #000 32px, #000 calc(100% - 32px), transparent); }
+
+  /* A group's row of tabs sits under the hero and sticks under the bar, its top rule over the bar's bottom one. */
+  .subnav { position: sticky; top: calc(var(--bar-h) - 1px); z-index: 15; border-block: 1px solid var(--line); scroll-margin-top: calc(var(--bar-h) - 1px); }
+  .subnav__in { display: flex; align-items: stretch; gap: clamp(18px, 3vw, 40px); height: calc(var(--sub-h) - 1px); }
+  .subnav__name { align-self: center; flex: none; }
+  .js .subnav:not(.is-on) { display: none; }
+  html:not(.js) .subnav { position: static; }
+  html:not(.js) .subnav + .subnav { border-top: 0; }
+  @media (max-width: 559px) { .subnav__name { display: none; } }
+
+  /* Hero. On a wide screen it fills what the bar leaves, so the first group's tabs wait at the foot of the screen. */
+  .hero { padding-block: clamp(32px, 5vw, 64px) clamp(8px, 2vw, 16px); }
+  .js .hero { padding-top: clamp(12px, 2vw, 24px); } /* the look picker's band above it is room enough */
+  .hero__copy { display: grid; gap: 22px; justify-items: start; margin-bottom: clamp(28px, 4vw, 48px); }
+  .hero__copy .lead { max-width: 66ch; }
+  .hero__title { font-size: clamp(2.2rem, 1.3rem + 3vw, 3.6rem); line-height: 1.08; letter-spacing: -0.02em; }
+  .hero__title > span { display: inline-block; white-space: nowrap; margin-right: .3em; }
+
+  /* Shapes: the morph across the top of the sheet */
+  .moulds { display: grid; gap: clamp(20px, 4vw, 56px); align-items: center; margin-bottom: clamp(40px, 6vw, 72px); }
+  @media (min-width: 900px) { .moulds { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); } }
+  .moulds__copy { display: grid; gap: 16px; justify-items: start; }
+  .moulds__stage { width: 100%; aspect-ratio: 16 / 10; }
+  @media (max-width: 520px) { .moulds__copy .btn { justify-self: stretch; } }
+
+  .seg { display: inline-grid; grid-auto-flow: column; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 2px; width: fit-content; max-width: 100%; }
+  .seg button {
+    min-height: 44px; padding: 0 14px; border: 0; background: var(--bg); color: var(--muted); cursor: pointer;
+    font: 400 .75rem/1 var(--mono); letter-spacing: .06em; text-transform: uppercase;
+    transition: background-color .15s var(--ease), color .15s var(--ease);
+  }
+  .seg button:hover { color: var(--ink); }
+  .seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+  @media (max-width: 560px) {
+    .seg { display: grid; grid-auto-flow: row; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; }
+    .seg button { padding: 0 6px; }
+  }
+  /* The look picker: one ruled row at every width, its cells split by hairlines, scrolled sideways on a narrow screen */
+  .seg.seg--float { display: grid; grid-auto-flow: column; grid-template-columns: none; gap: 0; width: max-content; max-width: none; height: 100%; background: none; border: 0; border-radius: 0; }
+  .seg--float button { min-height: 0; padding: 0 12px; background: transparent; }
+  .seg--float button + button { border-left: 1px solid var(--line); }
+  .seg--float button:focus-visible { outline-offset: -2px; } /* the row clips anything outside a cell */
+  @media (max-width: 1079px) { .seg--float button { padding: 0 10px; } }
+
+  /* Hero entrance, once: the four claims land one after another, then the rest */
+  @media (prefers-reduced-motion: no-preference) {
+    .hero__copy > :not(h1), .hero__title > span, .hero .doors { animation: rise .52s var(--ease-enter) both; animation-delay: calc(var(--i, 0) * 70ms + 80ms); }
+    @keyframes rise { from { opacity: 0; transform: translateY(12px); } }
+  }
+
+  /* Sheets: one on show at a time, picked by the tabs. Without script they all show, one after another. */
+  .js .sheet:not(.is-on) { display: none; }
+  .sheet { padding-block: clamp(36px, 5vw, 64px) clamp(28px, 4vw, 44px); scroll-margin-top: calc(var(--bar-h) + var(--sub-h)); }
+  /* Tall enough, with the footer, that the page can always bring a sheet's top up under its tabs.
+     64px is a little less than the footer, so there is always room to spare. */
+  .js .sheet { min-height: calc(100svh - var(--bar-h) - var(--sub-h) - 64px); }
+  /* The look picker floats over the top of a sheet, under its tabs, so the sheet starts below it. */
+  .js .sheet { padding-top: calc(var(--float-h) + clamp(24px, 3vw, 36px)); }
+  html:not(.js) .sheet + .sheet { border-top: 1px solid var(--line); }
+  .sheet h2[tabindex="-1"]:focus { outline: none; }
+  @media (prefers-reduced-motion: no-preference) {
+    .sheet.is-entering > .wrap { animation: sheet-in .4s var(--ease-enter) both; }
+    @keyframes sheet-in { from { opacity: 0; transform: translateY(10px); } }
+  }
+  .head { display: grid; gap: 16px; margin-bottom: clamp(28px, 4vw, 52px); }
+
+  /* Previous and next, at the foot of each sheet */
+  .pager { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: clamp(48px, 6vw, 80px); border-top: 1px solid var(--line); }
+  .pager__link { display: grid; gap: 8px; align-content: start; padding-top: 18px; text-decoration: none; }
+  .pager__link--next { grid-column: 2; justify-items: end; text-align: right; }
+  .pager__link .tag { transition: color .15s var(--ease); }
+  .pager__link:hover .tag { color: var(--ink); }
+  .pager__name { display: inline-flex; align-items: center; gap: 12px; min-height: 44px; font: 400 clamp(1.05rem, .9rem + .7vw, 1.4rem)/1.2 var(--display); letter-spacing: -0.01em; }
+  .pager__arrow { width: 22px; height: 22px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; transition: transform .2s var(--ease); }
+  .pager__link--next:hover .pager__arrow, .pager__link--next:focus-visible .pager__arrow { transform: translateX(4px); }
+  .pager__link--prev:hover .pager__arrow, .pager__link--prev:focus-visible .pager__arrow { transform: translateX(-4px); }
+
+  /* Shapes */
+  .shapes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); }
+  @media (min-width: 900px) { .shapes { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+  .shape { background: var(--bg); padding: 14px 16px 18px; display: grid; gap: 4px; min-width: 0; }
+  .shape__stage { aspect-ratio: 1; width: 100%; }
+  .shape code { color: var(--muted); overflow-wrap: anywhere; }
+  .shapebar { display: grid; gap: 14px 40px; align-items: end; margin-bottom: 20px; }
+  @media (min-width: 900px) { .shapebar { grid-template-columns: auto minmax(0, 1fr); } }
+  .shapebar p { color: var(--muted); font-size: .9375rem; max-width: 62ch; }
+
+  pre { padding: 16px 18px; background: var(--surface); border: 1px solid var(--line); border-radius: 2px; overflow-x: auto; line-height: 1.6; tab-size: 2; }
+  pre .dim { color: var(--muted); }
+
+  /* Spots */
+  .spotbar { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+  .spots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); }
+  @media (min-width: 900px) { .spots { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  .spot { background: var(--bg); padding: 10px 18px 20px; display: grid; gap: 4px; align-content: start; min-width: 0; }
+  .spot__stage { aspect-ratio: 6 / 5; width: 100%; max-width: 300px; justify-self: center; }
+  .spot p { color: var(--muted); font-size: .9375rem; }
+  .spot code { color: var(--muted); overflow-wrap: anywhere; }
+  .spots + .start { margin-top: clamp(28px, 4vw, 52px); }
+  @media (max-width: 560px) { .spot { padding: 6px 12px 16px; } .spotbar .btn { flex: 1 1 100%; } .seg.seg--two { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+  /* Model */
+  .model { display: grid; gap: clamp(24px, 4vw, 56px); align-items: start; }
+  @media (min-width: 900px) { .model { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); } }
+  .model__stage { width: 100%; aspect-ratio: 4 / 5; max-height: 640px; }
+  .model__panel { display: grid; gap: 26px; min-width: 0; }
+  .model__panel p { color: var(--muted); font-size: .9375rem; }
+  .model__panel .btn { justify-self: start; }
+  /* Each cell rules its own right and bottom edge, so the grid closes however many looks there are. */
+  .picks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: solid var(--line); border-width: 1px 0 0 1px; }
+  .pick { display: grid; gap: 0; min-width: 0; padding: 0; border: solid var(--line); border-width: 0 1px 1px 0; background: var(--bg); color: var(--muted); cursor: pointer; text-align: left; }
+  .pick__stage { display: block; width: 100%; aspect-ratio: 1; pointer-events: none; }
+  .pick__name {
+    display: block; padding: 9px 10px; border-top: 1px solid var(--line);
+    font: 400 .75rem/1 var(--mono); letter-spacing: .06em; text-transform: uppercase;
+    transition: background-color .15s var(--ease), color .15s var(--ease);
+  }
+  .pick:hover { color: var(--ink); }
+  .pick[aria-pressed="true"] .pick__name { background: var(--ink); color: var(--bg); }
+  .pick:focus-visible { outline-offset: -2px; }
+  @media (max-width: 560px) {
+    .picks { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .pick__name { padding: 9px 6px; letter-spacing: .03em; }
+    .seg.seg--four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .model__panel .btn { justify-self: stretch; }
+  }
+
+  /* Home: the hero, then a door to each group with examples, then the four lines to start */
+  .js .home:not(.is-on) { display: none; }
+  @media (prefers-reduced-motion: no-preference) {
+    .home.is-entering > * { animation: sheet-in .4s var(--ease-enter) both; }
+  }
+  .doors { display: grid; gap: 1px; background: var(--line); border: 1px solid var(--line); }
+  @media (min-width: 900px) { .doors { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .hero .doors { --i: 5; }
+  .door { display: grid; gap: 20px; align-content: start; padding: clamp(18px, 2.4vw, 28px); background: var(--bg); color: inherit; text-decoration: none; }
+  .door__art { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); transition: border-color .2s var(--ease); }
+  .door__art > div { background: var(--bg); aspect-ratio: 1; min-width: 0; }
+  .door__art--ui > div { aspect-ratio: 6 / 5; }
+  .door__copy { display: grid; gap: 10px; justify-items: start; }
+  .door__copy p { color: var(--muted); max-width: 52ch; text-wrap: pretty; }
+  .door__go { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; font-weight: 700; }
+  .door__go svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; transition: transform .2s var(--ease); }
+  .door:hover .door__art, .door:focus-visible .door__art { border-color: var(--ink); }
+  .door:hover .door__go svg, .door:focus-visible .door__go svg { transform: translateX(4px); }
+  .door:focus-visible { outline-offset: -2px; }
+  .homestart { padding-block: clamp(48px, 6vw, 80px) clamp(28px, 4vw, 44px); display: grid; gap: clamp(20px, 3vw, 32px); }
+
+  /* Start */
+  .start { display: grid; gap: clamp(20px, 3vw, 40px); }
+  @media (min-width: 900px) { .start { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .start > div { display: grid; gap: 12px; align-content: start; min-width: 0; }
+  .start p { color: var(--muted); }
+
+  footer { border-top: 1px solid var(--line); padding-block: 28px; color: var(--muted); font-size: .875rem; }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="bar">
+  <div class="wrap bar__in">
+    <a class="mark" href="#home">Loft</a>
+    <nav class="majors" aria-label="Main">
+      <div class="tabs">
+        <a href="#objects">Objects</a>
+        <a href="#ui">UI</a>
+        <span class="tabs__bar" aria-hidden="true"></span>
+      </div>
+    </nav>
+    <button class="theme" type="button" id="theme" data-next="light" aria-label="Colour theme: system. Switch to light">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <g class="i-light"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></g>
+        <g class="i-dark"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></g>
+        <g class="i-system"><rect x="3" y="4.5" width="18" height="12" rx="1.5"/><path d="M8.5 20h7M12 16.5V20"/></g>
+      </svg>
+    </button>
+  </div>
+</header>
+
+<aside class="float">
+  <div class="wrap float__in">
+    <div class="looks">
+      <span class="tag looks__label" id="look-label"><span>Draw this page as</span><span>Draw as</span></span>
+      <div class="looks__scroll"><div class="seg seg--float" id="looks" role="group" aria-labelledby="look-label"></div></div>
+    </div>
+  </div>
+</aside>
+
+<main id="main">
+  <section class="home is-on" id="home" aria-labelledby="hero-h">
+  <div class="hero" id="top">
+    <div class="wrap">
+      <div class="hero__copy">
+        <h1 class="display hero__title" id="hero-h"><span style="--i:0">No Canvas.</span> <span style="--i:1">No WebGL.</span> <span style="--i:2">All SVG.</span> <span style="--i:3">96&nbsp;kB</span></h1>
+        <p class="lead" style="--i:4">Loft is a library for 3D illustration on the web, with no dependencies. It builds shapes from NURBS, the curves and surfaces CAD software is made of, and draws them as SVG paths that scale like type and take their colours from your CSS. Pick a side:</p>
+      </div>
+      <div class="doors">
+        <a class="door" href="#objects">
+          <div class="door__art" id="door-objects" aria-hidden="true"><div></div><div></div><div></div></div>
+          <div class="door__copy">
+            <span class="tag">01 · Objects</span>
+            <h2 class="display">Shapes that grow, morph and turn</h2>
+            <p>Eight surfaces, one call each, with three kinds of motion to play on them, and a rigged Blender figure drawn in every look.</p>
+            <span class="door__go">Explore objects <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+          </div>
+        </a>
+        <a class="door" href="#ui">
+          <div class="door__art door__art--ui" id="door-ui" aria-hidden="true"><div></div><div></div><div></div></div>
+          <div class="door__copy">
+            <span class="tag">02 · UI</span>
+            <h2 class="display">Flat pictures that lean when you point</h2>
+            <p>Spot illustrations for feature cards and empty states. Every part is a sheet standing in space, so on hover the picture comes apart in depth.</p>
+            <span class="door__go">Explore UI <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+          </div>
+        </a>
+      </div>
+    </div>
+  </div>
+
+    <div class="wrap homestart">
+      <div class="head" style="margin-bottom:0">
+        <h2 class="display" id="start-h">Start in four lines</h2>
+        <p class="lead">Give a scene an element and a label, add a shape, pick a look.</p>
+      </div>
+      <div class="start">
+        <div>
+          <h3>With script</h3>
+<pre><code>import { Scene, shapes } from './dist/loft.js';
+
+const scene = new Scene('#stage', { label: 'A vase, turning' });
+scene.add(shapes.vase(), 'clay');
+scene.orbit({ auto: 0.3 });</code></pre>
+          <p>Looks: <code>clay</code>, <code>toon</code>, <code>ink</code>, <code>wire</code>, <code>engrave</code>, <code>halftone</code>. Or describe your own fill, lines, outline and dots.</p>
+        </div>
+        <div>
+          <h3>With markup alone</h3>
+<pre><code>&lt;script type="module" src="./dist/loft-element.js"&gt;&lt;/script&gt;
+
+&lt;loft-scene shape="knot" look="ink" spin orbit
+            label="A trefoil knot, turning"&gt;
+&lt;/loft-scene&gt;</code></pre>
+          <p>The full guide, with every constructor and option, is in the project's <a class="link" href="https://github.com/uxmatthew/Loft-3D-SVG#readme">README</a>.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <nav class="subnav" id="objects" aria-labelledby="group-objects">
+    <div class="wrap subnav__in">
+      <span class="tag subnav__name" id="group-objects">Objects</span>
+      <div class="tabs">
+        <a href="#shapes">Shapes</a>
+        <a href="#model">Model</a>
+        <span class="tabs__bar" aria-hidden="true"></span>
+      </div>
+    </div>
+  </nav>
+  <nav class="subnav" id="ui" aria-labelledby="group-ui">
+    <div class="wrap subnav__in">
+      <span class="tag subnav__name" id="group-ui">UI</span>
+      <div class="tabs">
+        <a href="#spots">Spots</a>
+        <span class="tabs__bar" aria-hidden="true"></span>
+      </div>
+    </div>
+  </nav>
+  <section class="sheet" id="shapes" aria-labelledby="shapes-h">
+    <div class="wrap">
+      <div class="moulds">
+        <div class="moulds__copy">
+          <h2 class="display">Each shape, moulded into the next</h2>
+          <p class="lead">Every shape on this sheet is sampled onto one plain net of points, so any two can be blended point for point, however differently they were built. Drag it to turn it.</p>
+          <span class="tag" id="hero-shape" role="status">Hull · 1 of 12</span>
+          <button class="btn btn--quiet" type="button" id="hero-morph">Morph into a vase</button>
+        </div>
+        <div class="moulds__stage" id="hero-stage"></div>
+      </div>
+      <div class="head">
+        <h2 class="display" id="shapes-h">Eight shapes, one call each</h2>
+        <p class="lead">Spin a profile, sweep a section along a path, or skin a surface over a row of frames. Each call returns a surface you can restyle, reshape and animate. Motion is geometry changing: pick one, then point at a shape to play it.</p>
+      </div>
+      <div class="shapebar">
+        <div class="field">
+          <span class="tag" id="shape-mode-label">On hover</span>
+          <div class="seg" id="shape-mode" role="group" aria-labelledby="shape-mode-label">
+            <button type="button" data-mode="grow" aria-pressed="true">Grow</button>
+            <button type="button" data-mode="morph" aria-pressed="false">Morph</button>
+            <button type="button" data-mode="rotate" aria-pressed="false">Rotate</button>
+          </div>
+        </div>
+        <p id="shape-mode-says" aria-live="polite"></p>
+      </div>
+      <ul class="shapes" id="shape-list"></ul>
+    </div>
+  </section>
+
+  <section class="sheet" id="model" aria-labelledby="model-h">
+    <div class="wrap">
+      <div class="head">
+        <h2 class="display" id="model-h">One Blender model, six looks</h2>
+        <p class="lead">This figure was read out of a rigged <code>.blend</code> file: six boxes hanging from six bones. Each box is drawn as one closed surface of degree 1, so every look and every layer treats it the way it treats a vase. Pick a look, switch its layers, and drag the figure to turn it.</p>
+      </div>
+      <div class="model">
+        <div class="model__stage" id="model-stage"></div>
+        <div class="model__panel">
+          <div class="field">
+            <span class="tag" id="pick-label">Look</span>
+            <div class="picks" id="picks" role="group" aria-labelledby="pick-label"></div>
+            <p id="look-says" aria-live="polite"></p>
+          </div>
+          <div class="field">
+            <span class="tag" id="layer-label">Layers of this look</span>
+            <div class="seg seg--four" id="layers" role="group" aria-labelledby="layer-label"></div>
+          </div>
+          <div class="field">
+            <span class="tag">Rig</span>
+            <p>Each part turns about the head of the bone it hangs from.</p>
+            <button class="btn btn--quiet" type="button" id="walk-btn" aria-pressed="false">Start walking</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sheet" id="spots" aria-labelledby="spots-h">
+    <div class="wrap">
+      <div class="head">
+        <h2 class="display" id="spots-h">Flat pictures that lean when you point</h2>
+        <p class="lead">Spot illustrations are small pictures of interface ideas, for feature cards and empty states. They are drawn flat, but every part is a sheet standing in space. Point at a card: its parts lift off the page and a short piece of motion plays. Move toward an edge or a corner and the picture leans away under the pointer.</p>
+      </div>
+      <div class="spotbar">
+        <div class="field">
+          <span class="tag" id="spot-mode-label">While pointed at</span>
+          <div class="seg seg--two" id="spot-mode" role="group" aria-labelledby="spot-mode-label">
+            <button type="button" data-mode="loop" aria-pressed="true">Loop</button>
+            <button type="button" data-mode="once" aria-pressed="false">Play once</button>
+          </div>
+        </div>
+        <button class="btn btn--quiet" type="button" id="spot-play" aria-pressed="false">Play them all</button>
+      </div>
+      <ul class="spots" id="spot-list"></ul>
+      <div class="start">
+        <div>
+          <h3>A ready-made one</h3>
+<pre><code>import { Spot } from './dist/loft.js';
+
+new Spot('#art', 'paste', {
+  hover: 'loop',     <span class="dim">// or 'once'</span>
+  trigger: '.card',  <span class="dim">// hovering the card plays it</span>
+});</code></pre>
+        </div>
+        <div>
+          <h3>Your own</h3>
+<pre><code>import { Spot, kit } from './dist/loft.js';
+
+new Spot('#art', { size: [240, 200], parts: [
+  { shape: kit.rect(40, 50, 160, 100, 14) },
+  { shape: kit.sparkle(170, 80, 14), fill: 'accent',
+    lift: 30, hover: { rz: Math.PI / 2, scale: 1.2 } },
+] });</code></pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">Loft, MIT licence. The mathematics follows Piegl and Tiller, <cite>The NURBS Book</cite>.</div>
+</footer>
+
+<script src="./nav.js"></script>
+<script src="../dist/loft.global.js"></script>
+<script src="./models/figure.js"></script>
+<script src="./catalogue.js"></script>
+<script>
+(() => {
+  const { Scene, shapes, torus, capsule, revolve, curve, NurbsCurve, NurbsSurface, morph, ease, resolveMaterial } = Loft;
+  const fine = matchMedia('(hover: hover) and (pointer: fine)').matches;
+  // Each sheet's scenes are built the first time its tab is opened (see nav.js).
+  const whenShown = window.LoftDemo ? window.LoftDemo.whenShown : (id, build) => build();
+
+  // ── One look for the whole page ──────────────────────────────────────────
+  // The buttons floating under the bar choose it and every surface on the page follows. A
+  // surface may tune a look (how many lines, how fine the facets) but never swaps it for another.
+  let pageLook = 'clay';
+  const followers = [];
+  const follow = (fn) => { followers.push(fn); fn(); };
+  const setLook = (name) => { pageLook = name; for (const fn of followers) fn(); };
+  // `tune` maps a look's name to what this surface changes about it; `all` applies to every look.
+  const wear = (mesh, tune = {}) => {
+    follow(() => { mesh.material = { look: pageLook, ...tune.all, ...tune[pageLook] }; });
+    return mesh;
+  };
+
+  // ── Drawn in more than one place ─────────────────────────────────────────
+  // The hero morphs through these as well as the sheets that show them, so they are made
+  // here, whether or not those sheets have been opened.
+  const pts = [[0, -1, 0], [1.25, -1, 0], [1.5, 0.3, 0], [0.95, 1.1, 0], [0, 1.1, 0]]; // a dome's profile
+  const tall = [[0, -1, 0], [0.45, -1, 0], [0.5, -0.3, 0], [0.2, 0.2, 0], [0.22, 0.7, 0], [0.42, 1, 0]]; // two vases
+  const wide = [[0, -1, 0], [0.5, -1, 0], [1.25, -0.75, 0], [1.1, 0.25, 0], [0.5, 0.35, 0], [0.62, 0.62, 0]];
+  const { rippleAt, knotTune } = LoftCatalogue; // the shapes, shared with the README animations (catalogue.js)
+
+  window.__scenes = {}; // each page adds its own when it is built
+
+  // ── Hero: every shape on the page, each moulded into the next ─────────────
+  // At the top of the Shapes sheet, built the first time it is shown.
+  whenShown('shapes', () => {
+    // No shape here is drawn from its own control net. Each is sampled onto one plain net of
+    // points, u across or around it and v along it, and two shapes on the same net can be
+    // blended point for point, however differently they were built.
+    const cast = [
+      { name: 'hull', says: 'An open boat hull', make: () => shapes.hull() },
+      { name: 'vase', says: 'A turned vase', make: () => shapes.vase() },
+      { name: 'torus', says: 'A ring', make: () => torus({ radius: 1, tube: 0.42 }), tilt: [0.5, 0, 0.2], size: 0.84 },
+      { name: 'capsule', says: 'A capsule', make: () => capsule({ radius: 0.55, height: 2.3 }), tilt: [0, 0, 0.7], size: 0.9 },
+      { name: 'knot', says: 'A knotted tube', make: () => shapes.knot(), size: 0.92 },
+      { name: 'shell', says: 'A spiral shell', make: () => shapes.shell() },
+      { name: 'blob', says: 'A smooth lump', make: () => shapes.blob(), size: 0.9 },
+      { name: 'ribbon', says: 'A twisted ribbon', make: () => shapes.ribbon() },
+      // `make` runs only when a shape is first needed.
+      { name: 'dome', says: 'A dome', make: () => revolve(new NurbsCurve({ degree: 3, points: pts })), size: 0.9 },
+      { name: 'tall vase', says: 'A tall vase', make: () => revolve(curve(tall)) },
+      { name: 'wide vase', says: 'A wide vase', make: () => revolve(curve(wide)) },
+      { name: 'sheet', says: 'A sheet with a ripple moving across it', make: () => shapes.sheet(), deform: rippleAt, lift: 0.5 },
+    ];
+
+    // One fixed frame, the hull's own box, so the camera never re-frames while points travel.
+    // A fixed frame holds nothing back for depth, so zoom 0.92 here puts the camera where 1.08
+    // did when the hero framed the hull by its bounds.
+    const heroView = { padding: 0.04, frame: [4, 0.88], camera: { azimuth: 0.85, elevation: 0.33, zoom: 0.92 } };
+    const hero = new Scene('#hero-stage', { ...heroView, label: 'An open boat hull, turning slowly', shadow: { y: 0 } });
+    const blank = () => new NurbsSurface({ degreeU: 1, degreeV: 1, points: [[[0, 0, 0], [0, 0, 0]], [[0, 0, 0], [0, 0, 0]]] });
+    // The net is already as fine as the shape needs (see `dice`), and cutting its straight spans
+    // again would add points but no shape, so the skin's own detail is turned right down.
+    const skin = wear(hero.add(blank()), {
+      all: { detail: 0.001 },
+      ink: { lines: { u: 16, v: 0, width: 0.7 } },
+      wire: { lines: { u: 16, v: 14 } },
+      engrave: { lines: { u: 0, v: 64 } },
+    });
+    hero.orbit({ auto: 0.22 });
+    hero.intro();
+
+    // Make a shape and decide where it stands: centred, tilted where that reads better, and
+    // scaled to fill the frame about as the hull does, wide shapes by width and tall ones by height.
+    const ready = (s) => {
+      if (s.made) return s;
+      s.made = s.make();
+      const tilt = s.tilt || [0, 0, 0], turn = Loft.math.compose([0, 0, 0], tilt, [1, 1, 1]);
+      const seen = [], lo = [Infinity, Infinity, Infinity], hi = [-Infinity, -Infinity, -Infinity];
+      for (let i = 0; i <= 24; i++) {
+        for (let j = 0; j <= 96; j++) {
+          const p = Loft.math.transformPoint(turn, s.made.at(i / 24, j / 96));
+          seen.push(p);
+          for (let k = 0; k < 3; k++) { lo[k] = Math.min(lo[k], p[k]); hi[k] = Math.max(hi[k], p[k]); }
+        }
+      }
+      const c = lo.map((x, k) => (x + hi[k]) / 2), h = (hi[1] - lo[1]) / 2, el = heroView.camera.elevation;
+      const r = Math.max(...seen.map((p) => Math.hypot(p[0] - c[0], p[2] - c[2])));
+      // 2 is the hull's half-length; 1.45 is as far above and below the centre as the frame
+      // shows, less a margin for perspective and the shadow.
+      const size = (s.size || 1) * Math.min(2 / r, 1.45 / (h * Math.cos(el) + r * Math.sin(el)));
+      s.place = { position: c.map((x) => -x * size), rotation: tilt, scale: size };
+      s.matrix = Loft.math.compose(s.place.position, tilt, [size, size, size]);
+      s.ground = -h * size - (s.lift || 0);
+      return s;
+    };
+
+    // How finely Loft would cut a shape into facets at the hero's size and in the page's look:
+    // draw it once off the page and read the grid it chose (`n`). The net is laid to match, so
+    // at rest each shape is drawn just as it would be on its own. `min` is the floor: a line
+    // on every knot, and enough lines for Loft to space the look's own lines evenly (twice as
+    // many, under 24), so it never has to cut the net finer itself.
+    const probe = new Scene(heroView);
+    const spanCount = (knots, degree, count) => Loft.knotBreaks(knots, degree, count).length - 1;
+    const need = (iso) => (!iso ? 1 : iso >= 24 ? iso : 2 * iso);
+    const dice = (s) => {
+      const key = [hero.W, hero.H, hero.lod, pageLook].join();
+      if (s.diceKey !== key) {
+        probe.clear();
+        probe.W = hero.W; probe.H = hero.H; probe.options.detail = hero.lod; probe.time = hero.time;
+        // Only detail and the look's lines decide the grid, so the probe draws nothing else.
+        const g = ready(s).made, lines = resolveMaterial(skin.material).lines || {};
+        const mesh = probe.add(g, { detail: 1, fill: false, outline: false, lines: lines.u || lines.v ? { u: lines.u || 0, v: lines.v || 0 } : false }, s.place);
+        mesh.deform = s.deform || null;
+        probe.render();
+        s.diceKey = key;
+        s.dice = {
+          n: [mesh._grid.NU - 1, mesh._grid.NV - 1],
+          min: [Math.max(spanCount(g.knotsU, g.degreeU, g.countU), need(lines.u)), Math.max(spanCount(g.knotsV, g.degreeV, g.countV), need(lines.v))],
+        };
+      }
+      return s.dice;
+    };
+    // Past about this many points a frame costs more than it can spare, so a finer net is cut
+    // more coarsely, down to its floor. Only the knot and the shell, and morphs through them,
+    // come near it. Where frames have run slow (a lower lod), the budget shrinks with them.
+    const BUDGET = 3000;
+    const fit = (n, min) => {
+      const k = Math.min(1, Math.sqrt((BUDGET * hero.lod) / ((n[0] + 1) * (n[1] + 1))));
+      return [Math.max(min[0], Math.round(n[0] * k)), Math.max(min[1], Math.round(n[1] * k))];
+    };
+
+    // Where the lines of an n-cell net fall along one direction of a surface: evenly within
+    // each knot span, so every knot, and any crease on one, lands on a line.
+    const ticks = (knots, degree, count, n) => {
+      const at = Loft.knotBreaks(knots, degree, count), spans = at.length - 1, out = new Float64Array(n + 1);
+      for (let k = 0; k < spans; k++) {
+        const a = Math.round((k * n) / spans), b = Math.round(((k + 1) * n) / spans);
+        for (let i = a; i < b; i++) out[i] = at[k] + ((at[k + 1] - at[k]) * (i - a)) / (b - a);
+      }
+      out[n] = at[spans];
+      return out;
+    };
+
+    // The net: (nu + 1) by (nv + 1) points joined by straight lines, and when each point sets
+    // off. A wave runs along v; around u, points far from the seam set off a little later, so
+    // neighbours never quite move as one. Each end of v leaves together and so do both sides
+    // of the seam, so poles stay points and seams stay closed on the way.
+    let heroNet = { nu: 1, nv: 1, surface: skin.geometry, delay: new Float32Array(4) };
+    const lay = (nu, nv) => {
+      if (nu === heroNet.nu && nv === heroNet.nv) return;
+      const count = (nu + 1) * (nv + 1), cp = new Float64Array(count * 4).fill(1), delay = new Float32Array(count);
+      for (let i = 0; i <= nu; i++) {
+        const late = (1 - Math.cos((2 * Math.PI * (i % nu)) / nu)) / 2;
+        for (let j = 0; j <= nv; j++) delay[i * (nv + 1) + j] = j / nv + 0.25 * Math.sin((Math.PI * j) / nv) * late;
+      }
+      heroNet = { nu, nv, delay, surface: new NurbsSurface({ degreeU: 1, degreeV: 1, cp, countU: nu + 1, countV: nv + 1 }) };
+      skin.geometry = heroNet.surface;
+    };
+
+    // A shape's points on the net, placed in the frame. Still shapes are worked out once per
+    // net; the sheet is worked out every frame, because its points are displaced over time.
+    const pose = (s) => {
+      const { nu, nv } = heroNet, key = nu + 'x' + nv;
+      if (s.poseKey !== key) {
+        const g = s.made, us = ticks(g.knotsU, g.degreeU, g.countU, nu), vs = ticks(g.knotsV, g.degreeV, g.countV, nv);
+        const raw = new Float64Array((nu + 1) * (nv + 1) * 3), p = [0, 0, 0];
+        for (let i = 0, o = 0; i <= nu; i++) {
+          for (let j = 0; j <= nv; j++, o += 3) { g.point(us[i], vs[j], p); raw[o] = p[0]; raw[o + 1] = p[1]; raw[o + 2] = p[2]; }
+        }
+        s.poseKey = key; s.raw = raw; s.pose = new Float64Array(raw.length); s.posed = false;
+      }
+      if (s.deform || !s.posed) {
+        const { raw, pose: out, matrix: m } = s, p = [0, 0, 0];
+        for (let i = 0, o = 0; i <= nu; i++) {
+          for (let j = 0; j <= nv; j++, o += 3) {
+            p[0] = raw[o]; p[1] = raw[o + 1]; p[2] = raw[o + 2];
+            if (s.deform) s.deform(p, i / nu, j / nv, hero.time);
+            out[o] = m[0] * p[0] + m[4] * p[1] + m[8] * p[2] + m[12];
+            out[o + 1] = m[1] * p[0] + m[5] * p[1] + m[9] * p[2] + m[13];
+            out[o + 2] = m[2] * p[0] + m[6] * p[1] + m[10] * p[2] + m[14];
+          }
+        }
+        s.posed = true;
+      }
+      return s.pose;
+    };
+
+    // Points caught part-way, carried over to a net of another size.
+    const stretch = (src, nu, nv, NU, NV) => {
+      if (nu === NU && nv === NV) return src;
+      const out = new Float64Array((NU + 1) * (NV + 1) * 3);
+      for (let i = 0, o = 0; i <= NU; i++) {
+        const x = (i * nu) / NU, i0 = Math.min(nu - 1, Math.floor(x)), fx = x - i0;
+        for (let j = 0; j <= NV; j++) {
+          const y = (j * nv) / NV, j0 = Math.min(nv - 1, Math.floor(y)), fy = y - j0;
+          const a = (i0 * (nv + 1) + j0) * 3, b = a + (nv + 1) * 3;
+          for (let k = 0; k < 3; k++, o++) {
+            out[o] = (src[a + k] * (1 - fx) + src[b + k] * fx) * (1 - fy) + (src[a + 3 + k] * (1 - fx) + src[b + 3 + k] * fx) * fy;
+          }
+        }
+      }
+      return out;
+    };
+
+    // `from` is the shape being left (or loose points, if a morph was cut short), `to` the one
+    // arriving, and `k` how far the wave has run. At rest there is only `to`.
+    const WAVE = 0.55; // the share of the morph the wave takes to pass; each point travels for the rest
+    const glide = (t) => (t <= 0 ? 0 : t >= 1 ? 1 : t * t * t * (t * (6 * t - 15) + 10));
+    let now = { from: null, to: ready(cast[0]), k: 1, ground: 0 }, place = 0, run = null;
+    const show = () => {
+      const { from, to, k } = now, cp = heroNet.surface.cp, delay = heroNet.delay, n = delay.length;
+      const B = pose(to), A = !from ? null : from.made ? pose(from) : from;
+      for (let v = 0, o = 0, q = 0; v < n; v++, o += 3, q += 4) {
+        const e = A ? glide((k - delay[v] * WAVE) / (1 - WAVE)) : 1;
+        if (e >= 1) { cp[q] = B[o]; cp[q + 1] = B[o + 1]; cp[q + 2] = B[o + 2]; }
+        else { cp[q] = A[o] + (B[o] - A[o]) * e; cp[q + 1] = A[o + 1] + (B[o + 1] - A[o + 1]) * e; cp[q + 2] = A[o + 2] + (B[o + 2] - A[o + 2]) * e; }
+      }
+      hero.options.shadow.y = A ? now.ground + (to.ground - now.ground) * glide(k) : to.ground;
+      heroNet.surface.changed();
+    };
+    // At rest the net is as fine as the shape on it needs, at this size and in this look.
+    const settle = () => {
+      if (now.from) return;
+      const d = dice(now.to);
+      lay(...fit(d.n, d.min));
+      show();
+    };
+    const arrive = () => {
+      run = null;
+      now = { from: null, to: now.to, k: 1, ground: now.to.ground };
+      settle();
+    };
+    follow(settle);
+    let lodSeen = hero.lod;
+    hero.loop(() => {
+      if (run) return;
+      if (hero.lod !== lodSeen) { lodSeen = hero.lod; settle(); } // frames ran slow: cut the shape more coarsely
+      else if (now.to.deform) show(); // the sheet goes on rippling once it has arrived
+    });
+    let resized = 0;
+    new ResizeObserver(() => { clearTimeout(resized); resized = setTimeout(settle, 200); }).observe(hero.host);
+
+    const morphBtn = document.getElementById('hero-morph'), shapeTag = document.getElementById('hero-shape');
+    const next = () => cast[(place + 1) % cast.length];
+    const idle = (fn) => (window.requestIdleCallback ? requestIdleCallback(fn) : setTimeout(fn, 60));
+    const say = () => {
+      const s = cast[place];
+      morphBtn.textContent = `Morph into a ${next().name}`;
+      shapeTag.textContent = `${s.name[0].toUpperCase() + s.name.slice(1)} · ${place + 1} of ${cast.length}`;
+      hero.label = `${s.says}, turning slowly`;
+      idle(() => dice(next())); // measure the next shape before it is asked for
+    };
+    say();
+
+    morphBtn.addEventListener('click', () => {
+      const to = ready(next()), b = dice(to);
+      let from = now.to, ground = now.to.ground, n;
+      if (now.from) {
+        // Clicked again on the way: set off from wherever the points have got to.
+        const cp = heroNet.surface.cp, loose = new Float64Array((cp.length / 4) * 3);
+        for (let o = 0, q = 0; q < cp.length; o += 3, q += 4) { loose[o] = cp[q]; loose[o + 1] = cp[q + 1]; loose[o + 2] = cp[q + 2]; }
+        n = fit([Math.max(heroNet.nu, b.n[0]), Math.max(heroNet.nv, b.n[1])], b.min);
+        from = stretch(loose, heroNet.nu, heroNet.nv, n[0], n[1]);
+        ground = hero.options.shadow.y;
+      } else {
+        const a = dice(from); // a net fine enough for both shapes
+        n = fit([Math.max(a.n[0], b.n[0]), Math.max(a.n[1], b.n[1])], [Math.max(a.min[0], b.min[0]), Math.max(a.min[1], b.min[1])]);
+      }
+      lay(...n);
+      now = { from, to, k: 0, ground };
+      place = (place + 1) % cast.length;
+      say();
+      run?.cancel();
+      run = null;
+      if (hero.paused) { arrive(); hero.render(); return; } // paused by the visitor: change the shape, stay still
+      const mine = (run = hero.tween(now, { k: 1 }, { duration: 1500, ease: ease.linear, onUpdate: show }));
+      mine.then((done) => { if (done && run === mine) arrive(); });
+    });
+
+    window.__scenes.hero = hero;
+  });
+
+  // ── Light, dark or the system's ──────────────────────────────────────────
+  // The button shows the setting the next press gives, and turns a half turn each press.
+  // Scenes re-read the page's colours when data-theme changes on <html>.
+  const themeBtn = document.getElementById('theme'), order = ['system', 'light', 'dark'];
+  let theme = document.documentElement.dataset.theme || 'system', turn = 0;
+  const showTheme = () => {
+    const next = order[(order.indexOf(theme) + 1) % order.length];
+    themeBtn.dataset.next = next;
+    themeBtn.setAttribute('aria-label', `Colour theme: ${theme}. Switch to ${next}`);
+  };
+  themeBtn.addEventListener('click', () => {
+    theme = themeBtn.dataset.next;
+    if (theme === 'system') delete document.documentElement.dataset.theme;
+    else document.documentElement.dataset.theme = theme;
+    try { if (theme === 'system') localStorage.removeItem('loft-theme'); else localStorage.setItem('loft-theme', theme); } catch { /* storage is off */ }
+    turn += 180;
+    themeBtn.style.setProperty('--turn', `${turn}deg`);
+    showTheme();
+  });
+  showTheme();
+
+  const seg = document.getElementById('looks');
+  for (const name of Object.keys(Loft.looks)) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = name;
+    b.addEventListener('click', () => setLook(name));
+    seg.appendChild(b);
+  }
+  follow(() => { for (const b of seg.children) b.setAttribute('aria-pressed', String(b.textContent === pageLook)); });
+
+  // ── Home: a door to each group, with examples that move while the door is pointed at ──
+  const turnOnHover = (trigger, scene, mesh, speed = 0.7) => {
+    let stop = null;
+    const on = () => { if (!stop) stop = scene.loop(({ dt }) => { mesh.rotation.y += dt * speed; }); };
+    const off = () => { stop?.(); stop = null; };
+    trigger.addEventListener('pointerenter', on);
+    trigger.addEventListener('pointerleave', off);
+    trigger.addEventListener('focus', on);
+    trigger.addEventListener('blur', off);
+  };
+  whenShown('home', () => {
+    const objects = document.getElementById('door-objects'), door = objects.closest('a');
+    const examples = [
+      [() => shapes.vase(), {}, 0.3],
+      [() => shapes.knot(), knotTune, 0.55],
+      [() => torus({ radius: 1, tube: 0.42 }), {}, 0.5],
+    ];
+    examples.forEach(([make, tune, elevation], k) => {
+      const scene = new Scene(objects.children[k], { camera: { azimuth: 0.7, elevation }, padding: 0.14, pauseButton: false });
+      turnOnHover(door, scene, wear(scene.add(make()), tune));
+    });
+    const ui = document.getElementById('door-ui');
+    ['assist', 'search', 'stack'].forEach((name, k) => new Loft.Spot(ui.children[k], name, { trigger: ui.closest('a'), follow: 0 }));
+  });
+
+  // ── Shapes: eight surfaces, and three kinds of motion played on hover ─────
+  whenShown('shapes', () => {
+    const list = document.getElementById('shape-list');
+    const modeSeg = document.getElementById('shape-mode'), modeSays = document.getElementById('shape-mode-says');
+    const modes = {
+      grow: 'Grow: the drawn range runs from nothing to the whole surface.<br><code>mesh.range = { v: [0, t] }</code>',
+      morph: 'Morph: the control net blends into a second one built the same way.<br><code>morph(a, b).t = t</code>',
+      rotate: 'Rotate: the scene turns about its centre.<br><code>scene.orbit({ auto: 0.6 })</code>',
+    };
+    let mode = 'grow';
+    const showMode = () => {
+      for (const b of modeSeg.children) b.setAttribute('aria-pressed', String(b.dataset.mode === mode));
+      modeSays.innerHTML = modes[mode];
+    };
+    modeSeg.addEventListener('click', (e) => {
+      const b = e.target.closest('button');
+      if (!b) return;
+      mode = b.dataset.mode;
+      showMode();
+    });
+    showMode();
+
+    const cards = LoftCatalogue.entries.map(({ name, code, make, tune, elevation, into, deform }) => {
+      const li = document.createElement('li');
+      li.className = 'shape';
+      li.innerHTML = `<div class="shape__stage"></div><h3>${name}</h3><code>${code}</code>`;
+      list.appendChild(li);
+      const scene = new Scene(li.firstChild, { label: `${name}, a 3D drawing you can turn`, camera: { azimuth: 0.7, elevation }, padding: 0.1, pauseButton: false });
+      const g = make(), target = LoftCatalogue.reshape(g, into), blend = morph(g, target);
+      scene.add(target, { fill: false }); // drawn with no layers, so the camera frames the whole morph
+      const mesh = wear(scene.add(blend), tune);
+      const waves = !!deform;
+      if (waves) mesh.deform = deform;
+      const orbit = scene.orbit({ auto: 0 });
+      let grow = null, stopWaves = null, playing = null;
+      const motions = {
+        grow: {
+          on: () => {
+            grow?.cancel();
+            mesh.range = { v: [0, 0] };
+            grow = scene.tween(mesh, { range: { v: [0, 1] } }, { duration: 1500, ease: ease.inOut });
+          },
+          off: () => {},
+        },
+        morph: {
+          on: () => scene.tween(blend, { t: 1 }, { duration: 900, ease: ease.inOut }),
+          off: () => scene.tween(blend, { t: 0 }, { duration: 700, ease: ease.inOut }),
+        },
+        rotate: {
+          on: () => { orbit.auto = 0.6; orbit._idle = Infinity; orbit._gain = 1; scene.invalidate(); },
+          off: () => { orbit.auto = 0; },
+        },
+      };
+      const on = () => {
+        if (playing) return;
+        playing = mode;
+        motions[mode].on();
+        if (waves) stopWaves = scene.loop(); // the waves run while the sheet is pointed at, whatever else it does
+      };
+      const off = () => {
+        if (!playing) return;
+        motions[playing].off();
+        playing = null;
+        stopWaves?.(); stopWaves = null;
+      };
+      if (fine) {
+        li.addEventListener('pointerenter', on);
+        li.addEventListener('pointerleave', off);
+      } else {
+        li.addEventListener('click', () => (playing ? off() : on())); // no hover on touch: a tap plays it, another stops it
+      }
+      return { name, scene };
+    });
+    for (const c of cards) window.__scenes[c.name.toLowerCase()] = c.scene;
+  });
+
+  // ── Model: a rigged Blender figure, every look and layer ─────────────────
+  whenShown('model', () => {
+    const figure = LoftDemoModels.figure;
+
+    const prism = LoftDemoModels.prism; // in models/figure.js
+    const nets = new Map();
+    const net = (part, fine) => {
+      const key = part.name + fine;
+      if (!nets.has(key)) nets.set(key, prism(part.rings, part.pivot, fine));
+      return nets.get(key);
+    };
+
+    // Toon keeps a vermilion band for where a curved surface turns from light to shade. A box
+    // has no turn, only faces, and a whole face would go vermilion, so the figure leaves the
+    // band out, and the tan beside it, and gives their tones to the part's own colour.
+    const boxRamp = (color) => {
+      const [night, deep, shade, , , body, light] = Loft.looks.toon().fill.ramp(color);
+      return [night, deep, shade, body, body, body, light];
+    };
+
+    // `n` is a part's net: n.u by n.v squares, each n.fine spans across.
+    const figureLooks = {
+      clay: { says: 'Soft matte shading, one tone to a face.', make: (n, color) => ({ look: 'clay', color, fill: { facets: true } }) },
+      toon: {
+        says: 'Flat poster tones, from cream through sand and vermilion to black, and a firm outline.',
+        make: (n, color) => ({ look: 'toon', color, fill: { facets: true, ramp: boxRamp } }),
+        tints: { torso: '#E94225', leg: '#766B52' }, // head and arms keep the look's own sand
+      },
+      ink: { says: 'Paper-coloured faces, an outline and construction lines. Hidden lines are covered.', make: (n) => ({ look: 'ink', lines: { u: n.u, v: n.v } }) },
+      wire: { says: 'See-through lines. The far side fades.', make: (n) => ({ look: 'wire', lines: { u: n.u, v: n.v } }) },
+      engrave: { says: 'One family of lines whose weight carries the shading.', make: (n) => ({ look: 'engrave', lines: { u: 0, v: n.v * n.fine } }), thumb: 2 },
+      halftone: { says: 'Dots that swell in the shadows.', make: () => ({ look: 'halftone' }) },
+    };
+    const layerNames = ['fill', 'lines', 'outline', 'dots'];
+    // Skin, shirt and trousers: the accent, and two mixes of the page's own ink and background.
+    const tints = {
+      head: 'accent', arm: 'accent',
+      torso: 'color-mix(in oklab, var(--ink) 42%, var(--bg))',
+      leg: 'color-mix(in oklab, var(--ink) 82%, var(--bg))',
+    };
+
+    // The material for one part: the look as it comes, or with layers switched on and off.
+    function paint(look, n, color, layers, small) {
+      const m = resolveMaterial(look.make(n, color));
+      if (layers) {
+        const spare = { fill: { color, tones: 20, specular: 0.14, facets: true }, lines: { u: n.u, v: n.v, width: 0.6 }, outline: { width: 1.5 }, dots: { size: 1 } };
+        for (const k of layerNames) m[k] = layers[k] ? m[k] || spare[k] : false;
+      }
+      if (m.dots && small) m.detail = 5; // dots sit one to a facet, and a thumbnail's facets are coarse
+      return m;
+    }
+
+    // The big figure is cut four spans to a square; a thumbnail gets by with one.
+    function stand(target, options, small) {
+      const scene = new Scene(target, { camera: { azimuth: 0.55, elevation: 0.2 }, padding: 0.06, ...options });
+      const meshes = figure.parts.map((part) => scene.add(net(part, small ? 1 : 4).surface, { fill: false }, { position: part.pivot }));
+      const dress = (name, layers) => {
+        const look = figureLooks[name];
+        meshes.forEach((mesh, k) => {
+          const part = figure.parts[k], n = net(part, small ? look.thumb || 1 : 4);
+          if (mesh.geometry !== n.surface) mesh.geometry = n.surface;
+          mesh.material = paint(look, n, (look.tints || tints)[part.name.split('-')[0]], layers, small);
+        });
+      };
+      return { scene, meshes, dress };
+    }
+
+    const model = stand('#model-stage', {
+      label: 'A blocky figure of six boxes: head, body, two arms and two legs',
+      shadow: true,
+      offset: [-0.07, 0], // the shadow falls to the right, so stand the figure left of centre
+      camera: { azimuth: 0.55, elevation: 0.2, zoom: 0.94 },
+      poster: 0.28, // under reduced motion, walking rests at full stride
+    });
+    model.scene.orbit({ auto: 0 });
+
+    const picks = document.getElementById('picks'), layerSeg = document.getElementById('layers'), says = document.getElementById('look-says');
+    let layers = null; // which layers of the page's look the figure shows
+    const layersOf = (name) => {
+      const m = resolveMaterial(figureLooks[name].make({ u: 1, v: 1, fine: 1 }, 'accent'));
+      return Object.fromEntries(layerNames.map((k) => [k, !!m[k]]));
+    };
+    const showModel = () => {
+      model.dress(pageLook, layers);
+      says.textContent = figureLooks[pageLook].says;
+      for (const b of picks.children) b.setAttribute('aria-pressed', String(b.dataset.look === pageLook));
+      for (const b of layerSeg.children) b.setAttribute('aria-pressed', String(layers[b.dataset.layer]));
+    };
+    for (const name of Object.keys(figureLooks)) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'pick';
+      b.dataset.look = name;
+      b.innerHTML = `<span class="pick__stage"></span><span class="pick__name">${name}</span>`;
+      picks.appendChild(b);
+      stand(b.firstChild, {}, true).dress(name, null); // no label: the button's text names it
+      b.addEventListener('click', () => setLook(name)); // the same choice as the hero's buttons
+    }
+    for (const name of layerNames) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.dataset.layer = name;
+      b.textContent = name;
+      layerSeg.appendChild(b);
+      b.addEventListener('click', () => {
+        const next = { ...layers, [name]: !layers[name] };
+        if (!layerNames.some((k) => next[k])) return; // keep something to look at
+        layers = next;
+        showModel();
+      });
+    }
+    follow(() => { layers = layersOf(pageLook); showModel(); }); // a new look starts with its own layers
+
+    // The rig: legs and arms swing about their bones, opposite pairs together. While they
+    // move, each limb stands a hair off the body, because faces that touch exactly cannot be
+    // sorted by depth (there is no depth buffer in SVG).
+    const head = model.meshes[figure.parts.findIndex((part) => part.name === 'head')];
+    const limbs = figure.parts.map((part, k) => ({ part, mesh: model.meshes[k], home: part.pivot[0] })).filter((l) => /^(arm|leg)/.test(l.part.name));
+    for (const l of limbs) {
+      l.side = l.part.name.endsWith('left') ? 1 : -1;
+      l.lead = l.part.name === 'leg-left' || l.part.name === 'arm-right' ? 1 : -1;
+    }
+    const walkBtn = document.getElementById('walk-btn');
+    let stopWalk = null;
+    walkBtn.addEventListener('click', () => {
+      if (stopWalk) {
+        stopWalk(); stopWalk = null;
+        model.scene.tween(head.rotation, { y: 0 }, { duration: 280 });
+        for (const l of limbs) {
+          model.scene.tween(l.mesh.rotation, { x: 0 }, { duration: 280 });
+          model.scene.tween(l.mesh.position, { x: l.home }, { duration: 280 });
+        }
+      } else {
+        const from = model.scene.time;
+        stopWalk = model.scene.loop(({ time }) => {
+          const t = (time - from) * 5.6, into = Math.min(1, (time - from) / 0.25);
+          for (const l of limbs) {
+            l.mesh.rotation.x = l.lead * 0.55 * into * Math.sin(t);
+            l.mesh.position.x = l.home + l.side * 0.03 * into;
+          }
+          head.rotation.y = 0.14 * into * Math.sin(t / 2);
+        });
+      }
+      walkBtn.setAttribute('aria-pressed', String(!!stopWalk));
+      walkBtn.textContent = stopWalk ? 'Stop walking' : 'Start walking';
+    });
+
+    window.__scenes.model = model.scene;
+  });
+
+  // ── Spots: flat interface pictures that lean and move on hover ───────────
+  whenShown('spots', () => {
+    const spotList = document.getElementById('spot-list');
+    const spotNotes = {
+      assist: ['Assist', 'A window, a reply and two sparkles that turn.'],
+      paste: ['Paste', 'A key goes down and a sheet leaves the clipboard.'],
+      plugin: ['Plug-in', 'The piece comes out, clicks back in, and the card is ticked.'],
+      search: ['Search', 'A lens passes over the results and one answers.'],
+      toggle: ['Settings', 'A switch is thrown.'],
+      stack: ['Layers', 'Three sheets come apart in depth.'],
+    };
+    const spotArt = Object.keys(Loft.spots).map((name) => {
+      const [title, note] = spotNotes[name] || [name, ''];
+      const li = document.createElement('li');
+      li.className = 'spot';
+      li.innerHTML = `<div class="spot__stage"></div><h3>${title}</h3><p>${note}</p><code>new Spot(el, '${name}')</code>`;
+      spotList.appendChild(li);
+      return new Loft.Spot(li.firstChild, name, { label: `${title}: ${note}`, trigger: li });
+    });
+    const spotMode = document.getElementById('spot-mode'), spotPlay = document.getElementById('spot-play');
+    let playingSpots = false;
+    spotMode.addEventListener('click', (e) => {
+      const b = e.target.closest('button');
+      if (!b) return;
+      for (const o of spotMode.children) o.setAttribute('aria-pressed', String(o === b));
+      for (const s of spotArt) { s.hover = b.dataset.mode; if (playingSpots) s.play(); }
+    });
+    spotPlay.addEventListener('click', () => {
+      playingSpots = !playingSpots;
+      for (const s of spotArt) { if (playingSpots) s.play(); else s.stop(); }
+      spotPlay.setAttribute('aria-pressed', String(playingSpots));
+      spotPlay.textContent = playingSpots ? 'Stop them' : 'Play them all';
+    });
+    window.__spots = spotArt;
+  });
+
+  document.documentElement.dataset.ready = '1';
+})();
+</script>
+</body>
+</html>
