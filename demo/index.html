@@ -114,7 +114,7 @@
   /* Light, dark or the system's: one button that shows what the next press gives, and turns to it */
   .theme { grid-area: theme; display: grid; place-items: center; width: 44px; height: 44px; margin-right: -10px; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--ink); cursor: pointer; transition: background-color .15s var(--ease); }
   .theme:hover { background: color-mix(in oklab, var(--ink) 8%, transparent); }
-  .theme svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; transform: rotate(var(--turn, 0deg)); transition: transform .45s var(--ease-enter); }
+  .theme svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; transform: rotate(var(--turn, 0deg)); transition: transform .55s var(--ease-enter); }
   .theme svg > g { display: none; }
   .theme[data-next="light"] .i-light, .theme[data-next="dark"] .i-dark, .theme[data-next="system"] .i-system { display: inline; }
   @media (prefers-reduced-motion: reduce) { .theme svg { transition: none; } }
@@ -136,6 +136,15 @@
   .looks__scroll { position: relative; min-width: 0; overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; }
   .looks__scroll::-webkit-scrollbar { display: none; }
   html:not(.js) .float { display: none; }
+  .float__in { flex-direction: column; align-items: flex-end; gap: 8px; }
+  .looks__says { max-width: min(46ch, 100%); padding: 9px 12px; pointer-events: none; font: 400 .75rem/1.45 var(--mono); letter-spacing: .03em; color: var(--ink);
+    background: color-mix(in oklab, var(--surface) 92%, transparent); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+    border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 2px; box-shadow: var(--lift);
+    opacity: 0; transform: translateY(-4px); transition: opacity .3s var(--ease), transform .3s var(--ease); }
+  .looks__says.is-on { opacity: 1; transform: none; }
+  .looks__says b { font-weight: 400; color: var(--accent); }
+  .float.is-low .looks__says { transform: translateY(var(--sub-h)); }
+  @media (prefers-reduced-motion: reduce) { .looks__says { transition: none; } }
   @media (prefers-reduced-motion: reduce) { .tabs-ready .looks { transition: none; } }
   /* Where the row is tight, the label is cut to "Draw as" */
   @media (max-width: 679px) {
@@ -321,8 +330,8 @@
     <a class="mark" href="#home">Loft</a>
     <nav class="majors" aria-label="Main">
       <div class="tabs">
-        <a href="#objects">Objects</a>
         <a href="#ui">UI</a>
+        <a href="#objects">Objects</a>
         <span class="tabs__bar" aria-hidden="true"></span>
       </div>
     </nav>
@@ -339,9 +348,10 @@
 <aside class="float">
   <div class="wrap float__in">
     <div class="looks">
-      <span class="tag looks__label" id="look-label"><span>Draw this page as</span><span>Draw as</span></span>
+      <span class="tag looks__label" id="look-label"><span>Design system</span><span>System</span></span>
       <div class="looks__scroll"><div class="seg seg--float" id="looks" role="group" aria-labelledby="look-label"></div></div>
     </div>
+    <p class="looks__says" id="system-says" aria-live="polite"></p>
   </div>
 </aside>
 
@@ -354,22 +364,22 @@
         <p class="lead" style="--i:4">Loft is a library for 3D illustration on the web, with no dependencies. It builds shapes from NURBS, the curves and surfaces CAD software is made of, and draws them as SVG paths that scale like type and take their colours from your CSS. Pick a side:</p>
       </div>
       <div class="doors">
-        <a class="door" href="#objects">
-          <div class="door__art" id="door-objects" aria-hidden="true"><div></div><div></div><div></div></div>
-          <div class="door__copy">
-            <span class="tag">01 · Objects</span>
-            <h2 class="display">Shapes that grow, morph and turn</h2>
-            <p>Eight surfaces, one call each, with three kinds of motion to play on them, and a rigged Blender figure drawn in every look.</p>
-            <span class="door__go">Explore objects <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
-          </div>
-        </a>
         <a class="door" href="#ui">
           <div class="door__art door__art--ui" id="door-ui" aria-hidden="true"><div></div><div></div><div></div></div>
           <div class="door__copy">
-            <span class="tag">02 · UI</span>
+            <span class="tag">01 · UI</span>
             <h2 class="display">Flat pictures that lean when you point</h2>
             <p>Spot illustrations for feature cards and empty states. Every part is a sheet standing in space, so on hover the picture comes apart in depth.</p>
             <span class="door__go">Explore UI <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+          </div>
+        </a>
+        <a class="door" href="#objects">
+          <div class="door__art" id="door-objects" aria-hidden="true"><div></div><div></div><div></div></div>
+          <div class="door__copy">
+            <span class="tag">02 · Objects</span>
+            <h2 class="display">Shapes that grow, morph and turn</h2>
+            <p>Eight surfaces, one call each, with three kinds of motion to play on them, and a rigged Blender figure drawn in every look.</p>
+            <span class="door__go">Explore objects <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
           </div>
         </a>
       </div>
@@ -404,6 +414,15 @@ scene.orbit({ auto: 0.3 });</code></pre>
     </div>
   </section>
 
+  <nav class="subnav" id="ui" aria-labelledby="group-ui">
+    <div class="wrap subnav__in">
+      <span class="tag subnav__name" id="group-ui">UI</span>
+      <div class="tabs">
+        <a href="#spots">Spots</a>
+        <span class="tabs__bar" aria-hidden="true"></span>
+      </div>
+    </div>
+  </nav>
   <nav class="subnav" id="objects" aria-labelledby="group-objects">
     <div class="wrap subnav__in">
       <span class="tag subnav__name" id="group-objects">Objects</span>
@@ -414,15 +433,47 @@ scene.orbit({ auto: 0.3 });</code></pre>
       </div>
     </div>
   </nav>
-  <nav class="subnav" id="ui" aria-labelledby="group-ui">
-    <div class="wrap subnav__in">
-      <span class="tag subnav__name" id="group-ui">UI</span>
-      <div class="tabs">
-        <a href="#spots">Spots</a>
-        <span class="tabs__bar" aria-hidden="true"></span>
+  <section class="sheet" id="spots" aria-labelledby="spots-h">
+    <div class="wrap">
+      <div class="head">
+        <h2 class="display" id="spots-h">Flat pictures that lean when you point</h2>
+        <p class="lead">Spot illustrations are small pictures of interface ideas, for feature cards and empty states. They are drawn flat, but every part is a sheet standing in space. Point at a card: its parts lift off the page and a short piece of motion plays. Move toward an edge or a corner and the picture leans away under the pointer.</p>
+      </div>
+      <div class="spotbar">
+        <div class="field">
+          <span class="tag" id="spot-mode-label">While pointed at</span>
+          <div class="seg seg--two" id="spot-mode" role="group" aria-labelledby="spot-mode-label">
+            <button type="button" data-mode="loop" aria-pressed="true">Loop</button>
+            <button type="button" data-mode="once" aria-pressed="false">Play once</button>
+          </div>
+        </div>
+        <button class="btn btn--quiet" type="button" id="spot-play" aria-pressed="false">Play them all</button>
+      </div>
+      <ul class="spots" id="spot-list"></ul>
+      <div class="start">
+        <div>
+          <h3>A ready-made one</h3>
+<pre><code>import { Spot } from './dist/loft.js';
+
+new Spot('#art', 'paste', {
+  hover: 'loop',     <span class="dim">// or 'once'</span>
+  trigger: '.card',  <span class="dim">// hovering the card plays it</span>
+});</code></pre>
+        </div>
+        <div>
+          <h3>Your own</h3>
+<pre><code>import { Spot, kit } from './dist/loft.js';
+
+new Spot('#art', { size: [240, 200], parts: [
+  { shape: kit.rect(40, 50, 160, 100, 14) },
+  { shape: kit.sparkle(170, 80, 14), fill: 'accent',
+    lift: 30, hover: { rz: Math.PI / 2, scale: 1.2 } },
+] });</code></pre>
+        </div>
       </div>
     </div>
-  </nav>
+  </section>
+
   <section class="sheet" id="shapes" aria-labelledby="shapes-h">
     <div class="wrap">
       <div class="moulds">
@@ -481,47 +532,6 @@ scene.orbit({ auto: 0.3 });</code></pre>
     </div>
   </section>
 
-  <section class="sheet" id="spots" aria-labelledby="spots-h">
-    <div class="wrap">
-      <div class="head">
-        <h2 class="display" id="spots-h">Flat pictures that lean when you point</h2>
-        <p class="lead">Spot illustrations are small pictures of interface ideas, for feature cards and empty states. They are drawn flat, but every part is a sheet standing in space. Point at a card: its parts lift off the page and a short piece of motion plays. Move toward an edge or a corner and the picture leans away under the pointer.</p>
-      </div>
-      <div class="spotbar">
-        <div class="field">
-          <span class="tag" id="spot-mode-label">While pointed at</span>
-          <div class="seg seg--two" id="spot-mode" role="group" aria-labelledby="spot-mode-label">
-            <button type="button" data-mode="loop" aria-pressed="true">Loop</button>
-            <button type="button" data-mode="once" aria-pressed="false">Play once</button>
-          </div>
-        </div>
-        <button class="btn btn--quiet" type="button" id="spot-play" aria-pressed="false">Play them all</button>
-      </div>
-      <ul class="spots" id="spot-list"></ul>
-      <div class="start">
-        <div>
-          <h3>A ready-made one</h3>
-<pre><code>import { Spot } from './dist/loft.js';
-
-new Spot('#art', 'paste', {
-  hover: 'loop',     <span class="dim">// or 'once'</span>
-  trigger: '.card',  <span class="dim">// hovering the card plays it</span>
-});</code></pre>
-        </div>
-        <div>
-          <h3>Your own</h3>
-<pre><code>import { Spot, kit } from './dist/loft.js';
-
-new Spot('#art', { size: [240, 200], parts: [
-  { shape: kit.rect(40, 50, 160, 100, 14) },
-  { shape: kit.sparkle(170, 80, 14), fill: 'accent',
-    lift: 30, hover: { rz: Math.PI / 2, scale: 1.2 } },
-] });</code></pre>
-        </div>
-      </div>
-    </div>
-  </section>
-
 </main>
 
 <footer>
@@ -539,18 +549,62 @@ new Spot('#art', { size: [240, 200], parts: [
   // Each sheet's scenes are built the first time its tab is opened (see nav.js).
   const whenShown = window.LoftDemo ? window.LoftDemo.whenShown : (id, build) => build();
 
-  // ── One look for the whole page ──────────────────────────────────────────
-  // The buttons floating under the bar choose it and every surface on the page follows. A
-  // surface may tune a look (how many lines, how fine the facets) but never swaps it for another.
-  let pageLook = 'clay';
+  // ── One design system for the whole page ─────────────────────────────────
+  // The buttons floating under the bar choose it, and everything on the page follows: the look
+  // every surface is drawn in, the accent colour (light and dark) that the drawings and the page
+  // share, the display face, line weights and colours, and the motion: how fast things turn,
+  // grow and morph, the easing, and how far the spot illustrations lean.
+  //   tempo   multiplies every duration (above 1 is slower)    ease  one of Loft's ease curves
+  //   lean    multiplies how far spots lean under the pointer   layers  merged onto the look's own
+  const systems = [
+    { id: 'studio', name: 'Studio', look: 'clay', accent: ['#B5462B', '#E2714C'], display: 'Michroma', tempo: 1, ease: 'inOut', lean: 1, layers: {},
+      says: 'clay look · terracotta · soft matte shading · unhurried, eased motion' },
+    { id: 'pulp', name: 'Pulp', look: 'toon', accent: ['#D2361C', '#F2603F'], display: 'Bricolage Grotesque', tempo: 0.6, ease: 'out', lean: 1.5, layers: { outline: { width: 2.8 } },
+      says: 'toon look · vermilion · flat poster tones · heavy outline · quick, snappy motion' },
+    { id: 'drafting', name: 'Drafting', look: 'ink', accent: ['#2B5FB5', '#7AA2E8'], display: 'Sora', tempo: 1.5, ease: 'linear', lean: 0.6, layers: { lines: { width: 0.45 }, outline: { width: 1.1 } },
+      says: 'ink look · cobalt · hairline construction lines · slow, linear motion' },
+    { id: 'blueprint', name: 'Blueprint', look: 'wire', accent: ['#0E7C86', '#4FD1D9'], display: 'B612 Mono', tempo: 1.9, ease: 'inOut', lean: 0.5, layers: { lines: { color: 'accent' }, outline: { color: 'accent' } },
+      says: 'wire look · cyan lines · see-through · a slow drift' },
+    { id: 'banknote', name: 'Banknote', look: 'engrave', accent: ['#2F6B3A', '#7FBF8A'], display: 'Literata', tempo: 1.3, ease: 'enter', lean: 0.8, layers: { lines: { color: 'accent', width: 1.1 } },
+      says: 'engrave look · bank-note green · swelling engraved lines · weighty, deliberate motion' },
+    { id: 'print', name: 'Print', look: 'halftone', accent: ['#C2185B', '#F06292'], display: 'Sora', tempo: 0.75, ease: 'out', lean: 1.2, layers: { dots: { color: 'accent' } },
+      says: 'halftone look · magenta dots · lights left bare · brisk motion' },
+  ];
+  // Each system's accent and face as a class on <html>; Loft re-reads the page's colours when its class changes.
+  const css = document.createElement('style');
+  css.textContent = systems.map(({ id, accent: [light, dark], display }) =>
+    `:root.sys-${id} { --accent: ${light}; --display: "${display}", "Arial Black", sans-serif; }` +
+    `@media (prefers-color-scheme: dark) { :root.sys-${id}:not([data-theme="light"]) { --accent: ${dark}; } }` +
+    `:root.sys-${id}[data-theme="dark"] { --accent: ${dark}; }`).join('\n');
+  document.head.appendChild(css);
+
+  let system = systems[0], pageLook = system.look;
   const followers = [];
   const follow = (fn) => { followers.push(fn); fn(); };
-  const setLook = (name) => { pageLook = name; for (const fn of followers) fn(); };
+  const setSystem = (next) => {
+    const root = document.documentElement;
+    root.classList.remove(`sys-${system.id}`);
+    system = next; pageLook = next.look;
+    root.classList.add(`sys-${next.id}`);
+    for (const fn of followers) fn();
+  };
+  const setLook = (name) => setSystem(systems.find((x) => x.look === name) || systems[0]);
+  const ms = (n) => n * system.tempo;          // a duration in this system's tempo
+  const easing = () => ease[system.ease];
+  // Layer objects are merged one level deep, so a surface's line counts and a system's line weight both hold.
+  const merge = (...parts) => {
+    const out = {};
+    for (const part of parts) for (const [k, v] of Object.entries(part || {})) {
+      out[k] = v && typeof v === 'object' && out[k] && typeof out[k] === 'object' ? { ...out[k], ...v } : v;
+    }
+    return out;
+  };
   // `tune` maps a look's name to what this surface changes about it; `all` applies to every look.
   const wear = (mesh, tune = {}) => {
-    follow(() => { mesh.material = { look: pageLook, ...tune.all, ...tune[pageLook] }; });
+    follow(() => { mesh.material = merge({ look: pageLook }, system.layers, tune.all, tune[pageLook]); });
     return mesh;
   };
+  document.documentElement.classList.add(`sys-${system.id}`);
 
   // ── Drawn in more than one place ─────────────────────────────────────────
   // The hero morphs through these as well as the sheets that show them, so they are made
@@ -598,7 +652,8 @@ new Spot('#art', { size: [240, 200], parts: [
       wire: { lines: { u: 16, v: 14 } },
       engrave: { lines: { u: 0, v: 64 } },
     });
-    hero.orbit({ auto: 0.22 });
+    const heroOrbit = hero.orbit({ auto: 0.22 });
+    follow(() => { heroOrbit.auto = 0.22 / system.tempo; });
     hero.intro();
 
     // Make a shape and decide where it stands: centred, tilted where that reads better, and
@@ -805,7 +860,7 @@ new Spot('#art', { size: [240, 200], parts: [
       run?.cancel();
       run = null;
       if (hero.paused) { arrive(); hero.render(); return; } // paused by the visitor: change the shape, stay still
-      const mine = (run = hero.tween(now, { k: 1 }, { duration: 1500, ease: ease.linear, onUpdate: show }));
+      const mine = (run = hero.tween(now, { k: 1 }, { duration: ms(1500), ease: ease.linear, onUpdate: show }));
       mine.then((done) => { if (done && run === mine) arrive(); });
     });
 
@@ -813,7 +868,7 @@ new Spot('#art', { size: [240, 200], parts: [
   });
 
   // ── Light, dark or the system's ──────────────────────────────────────────
-  // The button shows the setting the next press gives, and turns a half turn each press.
+  // The button shows the setting the next press gives, and spins a whole turn each press.
   // Scenes re-read the page's colours when data-theme changes on <html>.
   const themeBtn = document.getElementById('theme'), order = ['system', 'light', 'dark'];
   let theme = document.documentElement.dataset.theme || 'system', turn = 0;
@@ -827,26 +882,36 @@ new Spot('#art', { size: [240, 200], parts: [
     if (theme === 'system') delete document.documentElement.dataset.theme;
     else document.documentElement.dataset.theme = theme;
     try { if (theme === 'system') localStorage.removeItem('loft-theme'); else localStorage.setItem('loft-theme', theme); } catch { /* storage is off */ }
-    turn += 180;
+    turn += 360; // a whole turn, so the icon always lands upright
     themeBtn.style.setProperty('--turn', `${turn}deg`);
     showTheme();
   });
   showTheme();
 
-  const seg = document.getElementById('looks');
-  for (const name of Object.keys(Loft.looks)) {
+  const seg = document.getElementById('looks'), systemSays = document.getElementById('system-says');
+  let saysTimer = 0;
+  for (const x of systems) {
     const b = document.createElement('button');
     b.type = 'button';
-    b.textContent = name;
-    b.addEventListener('click', () => setLook(name));
+    b.textContent = x.name;
+    b.dataset.system = x.id;
+    b.title = x.says;
+    b.addEventListener('click', () => {
+      setSystem(x);
+      // Say what the system changed, then get out of the way.
+      systemSays.innerHTML = `<b>${x.name}</b> · ${x.says}`;
+      systemSays.classList.add('is-on');
+      clearTimeout(saysTimer);
+      saysTimer = setTimeout(() => systemSays.classList.remove('is-on'), 4200);
+    });
     seg.appendChild(b);
   }
-  follow(() => { for (const b of seg.children) b.setAttribute('aria-pressed', String(b.textContent === pageLook)); });
+  follow(() => { for (const b of seg.children) b.setAttribute('aria-pressed', String(b.dataset.system === system.id)); });
 
   // ── Home: a door to each group, with examples that move while the door is pointed at ──
   const turnOnHover = (trigger, scene, mesh, speed = 0.7) => {
     let stop = null;
-    const on = () => { if (!stop) stop = scene.loop(({ dt }) => { mesh.rotation.y += dt * speed; }); };
+    const on = () => { if (!stop) stop = scene.loop(({ dt }) => { mesh.rotation.y += (dt * speed) / system.tempo; }); };
     const off = () => { stop?.(); stop = null; };
     trigger.addEventListener('pointerenter', on);
     trigger.addEventListener('pointerleave', off);
@@ -908,16 +973,16 @@ new Spot('#art', { size: [240, 200], parts: [
           on: () => {
             grow?.cancel();
             mesh.range = { v: [0, 0] };
-            grow = scene.tween(mesh, { range: { v: [0, 1] } }, { duration: 1500, ease: ease.inOut });
+            grow = scene.tween(mesh, { range: { v: [0, 1] } }, { duration: ms(1500), ease: easing() });
           },
           off: () => {},
         },
         morph: {
-          on: () => scene.tween(blend, { t: 1 }, { duration: 900, ease: ease.inOut }),
-          off: () => scene.tween(blend, { t: 0 }, { duration: 700, ease: ease.inOut }),
+          on: () => scene.tween(blend, { t: 1 }, { duration: ms(900), ease: easing() }),
+          off: () => scene.tween(blend, { t: 0 }, { duration: ms(700), ease: easing() }),
         },
         rotate: {
-          on: () => { orbit.auto = 0.6; orbit._idle = Infinity; orbit._gain = 1; scene.invalidate(); },
+          on: () => { orbit.auto = 0.6 / system.tempo; orbit._idle = Infinity; orbit._gain = 1; scene.invalidate(); },
           off: () => { orbit.auto = 0; },
         },
       };
@@ -988,6 +1053,9 @@ new Spot('#art', { size: [240, 200], parts: [
     // The material for one part: the look as it comes, or with layers switched on and off.
     function paint(look, n, color, layers, small) {
       const m = resolveMaterial(look.make(n, color));
+      // The design system that draws in this look adds its own line weights and colours.
+      const own = (systems.find((x) => figureLooks[x.look] === look) || {}).layers || {};
+      for (const k of layerNames) if (m[k] && own[k]) m[k] = { ...m[k], ...own[k] };
       if (layers) {
         const spare = { fill: { color, tones: 20, specular: 0.14, facets: true }, lines: { u: n.u, v: n.v, width: 0.6 }, outline: { width: 1.5 }, dots: { size: 1 } };
         for (const k of layerNames) m[k] = layers[k] ? m[k] || spare[k] : false;
@@ -1079,7 +1147,7 @@ new Spot('#art', { size: [240, 200], parts: [
       } else {
         const from = model.scene.time;
         stopWalk = model.scene.loop(({ time }) => {
-          const t = (time - from) * 5.6, into = Math.min(1, (time - from) / 0.25);
+          const t = ((time - from) * 5.6) / system.tempo, into = Math.min(1, (time - from) / 0.25);
           for (const l of limbs) {
             l.mesh.rotation.x = l.lead * 0.55 * into * Math.sin(t);
             l.mesh.position.x = l.home + l.side * 0.03 * into;
@@ -1111,7 +1179,18 @@ new Spot('#art', { size: [240, 200], parts: [
       li.className = 'spot';
       li.innerHTML = `<div class="spot__stage"></div><h3>${title}</h3><p>${note}</p><code>new Spot(el, '${name}')</code>`;
       spotList.appendChild(li);
-      return new Loft.Spot(li.firstChild, name, { label: `${title}: ${note}`, trigger: li });
+      const spot = new Loft.Spot(li.firstChild, name, { label: `${title}: ${note}`, trigger: li });
+      spot.base = { duration: spot.duration, hold: spot.hold, follow: spot.follow, lean: spot.lean };
+      return spot;
+    });
+    // The design system sets how fast the spots move and how far they lean.
+    follow(() => {
+      for (const s of spotArt) {
+        s.duration = s.base.duration * system.tempo;
+        s.hold = s.base.hold * system.tempo;
+        s.follow = s.base.follow * system.lean;
+        s.lean = s.base.lean.map((x) => x * system.lean);
+      }
     });
     const spotMode = document.getElementById('spot-mode'), spotPlay = document.getElementById('spot-play');
     let playingSpots = false;

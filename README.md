@@ -38,7 +38,7 @@ Every animation here is drawn by Loft itself, frame by frame, as SVG.
 
 ### The demo page
 
-Open `demo/index.html` in a browser to try all of it: it loads `dist/loft.global.js` and needs no server. The home page leads to two groups, **Objects** (the shapes with their hover motions, the shape morph, and the rigged model in every look and layer) and **UI** (the spot illustrations). The look every drawing is made in is chosen from the bar at the top, and the button in the corner switches between light, dark and the system's theme. A sheet's scenes are built the first time it is opened, and the address names the sheet, so `demo/index.html#model` opens the Model sheet.
+Open `demo/index.html` in a browser to try all of it: it loads `dist/loft.global.js` and needs no server. The home page leads to two groups, **UI** (the spot illustrations) and **Objects** (the shape morph, the shapes with their hover motions, and the rigged model in every look and layer). The bar at the top picks a design system for the whole page — Studio, Pulp, Drafting, Blueprint, Banknote or Print — and each one sets the look every drawing is made in, the accent colour for light and dark, the display face, line weights and colours, and the motion: speed, easing and how far the spots lean. It shows how one set of drawings takes on a brand. The button in the corner switches between light, dark and the system's theme. A sheet's scenes are built the first time it is opened, and the address names the sheet, so `demo/index.html#model` opens the Model sheet.
 
 ## Contents
 
