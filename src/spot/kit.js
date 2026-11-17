@@ -221,3 +221,84 @@ export function shift(curves, dx = 0, dy = 0) {
   const m = new Float64Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, dx, dy, 0, 1]);
   return [].concat(curves).map((k) => k.transform(m));
 }
+
+// Polylines through a set of outlines, closely enough spaced to measure gaps between them.
+const trace = (curves) => [].concat(curves).map((k) => ({ pts: k.params(12).map((u) => k.point(u)), closed: isClosed(k) }));
+const isClosed = (k) => { const a = k.at(0), b = k.at(1); return Math.hypot(a[0] - b[0], a[1] - b[1]) < 1e-6; };
+
+const box = (lines) => {
+  const b = [Infinity, Infinity, -Infinity, -Infinity];
+  for (const { pts } of lines) for (const [x, y] of pts) { b[0] = Math.min(b[0], x); b[1] = Math.min(b[1], y); b[2] = Math.max(b[2], x); b[3] = Math.max(b[3], y); }
+  return b;
+};
+
+// The distance between segments ab and cd in the plane (0 when they cross).
+function segGap(a, b, c, d) {
+  const cross = (o, p, q) => (p[0] - o[0]) * (q[1] - o[1]) - (p[1] - o[1]) * (q[0] - o[0]);
+  const d1 = cross(a, b, c), d2 = cross(a, b, d), d3 = cross(c, d, a), d4 = cross(c, d, b);
+  if (((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) && ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0))) return 0;
+  const toSeg = (p, s, e) => {
+    const dx = e[0] - s[0], dy = e[1] - s[1], L = dx * dx + dy * dy;
+    const t = L ? Math.max(0, Math.min(1, ((p[0] - s[0]) * dx + (p[1] - s[1]) * dy) / L)) : 0;
+    return Math.hypot(p[0] - s[0] - t * dx, p[1] - s[1] - t * dy);
+  };
+  return Math.min(toSeg(a, c, d), toSeg(b, c, d), toSeg(c, a, b), toSeg(d, a, b));
+}
+
+// Whether point p is inside a closed polyline (even-odd).
+function inside(p, pts) {
+  let hit = false;
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+    const [xi, yi] = pts[i], [xj, yj] = pts[j];
+    if ((yi > p[1]) !== (yj > p[1]) && p[0] < ((xj - xi) * (p[1] - yi)) / (yj - yi) + xi) hit = !hit;
+  }
+  return hit;
+}
+
+function touches(A, B, gap, filled) {
+  for (const a of A.lines) for (const b of B.lines) {
+    for (let i = 1; i < a.pts.length; i++) for (let j = 1; j < b.pts.length; j++) {
+      if (segGap(a.pts[i - 1], a.pts[i], b.pts[j - 1], b.pts[j]) <= gap) return true;
+    }
+  }
+  // Filled shapes also hold together when one lies inside the other.
+  if (filled) {
+    for (const a of A.lines) if (a.closed) for (const b of B.lines) if (inside(b.pts[0], a.pts)) return true;
+    for (const b of B.lines) if (b.closed) for (const a of A.lines) if (inside(a.pts[0], b.pts)) return true;
+  }
+  return false;
+}
+
+/**
+ * Sorts the outlines of a drawing into the pieces that hold together. SVG often draws one
+ * object as several strokes that only meet or overlap on the page (the lid, body and handle
+ * of a bin; the shackle and case of a padlock), and they come apart when they stand at
+ * different depths. Two outlines belong to one piece when they come within `gap` of each
+ * other anywhere, which for strokes is about the stroke width; with `filled`, a shape that
+ * lies inside a closed one joins it too. Joining carries through (a touches b touches c).
+ *
+ * `outlines` is a list of outline sets (a curve or an array of curves each, such as one
+ * `path(d)` per SVG element). Returns the pieces in drawing order, each
+ * `{ shape, members }`: all of its curves, and the indices of the outlines it took in.
+ */
+export function pieces(outlines, { gap = 1, filled = false } = {}) {
+  const items = outlines.map((o) => { const lines = trace(o); return { lines, box: box(lines) }; });
+  const root = items.map((_, i) => i);
+  const find = (i) => (root[i] === i ? i : (root[i] = find(root[i])));
+  for (let i = 0; i < items.length; i++) {
+    for (let j = i + 1; j < items.length; j++) {
+      const a = items[i].box, b = items[j].box;
+      const near = a[0] - gap <= b[2] && b[0] - gap <= a[2] && a[1] - gap <= b[3] && b[1] - gap <= a[3];
+      if (near && find(i) !== find(j) && touches(items[i], items[j], gap, filled)) root[find(j)] = find(i);
+    }
+  }
+  const groups = new Map();
+  outlines.forEach((o, i) => {
+    const r = find(i);
+    if (!groups.has(r)) groups.set(r, { shape: [], members: [] });
+    const g = groups.get(r);
+    g.shape.push(...[].concat(o));
+    g.members.push(i);
+  });
+  return [...groups.values()];
+}

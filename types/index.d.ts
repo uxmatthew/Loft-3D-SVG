@@ -560,6 +560,14 @@ export namespace kit {
   function path(d: string): NurbsCurve[];
   function turn(curves: NurbsCurve | NurbsCurve[], angle: number, cx?: number, cy?: number): NurbsCurve[];
   function shift(curves: NurbsCurve | NurbsCurve[], dx?: number, dy?: number): NurbsCurve[];
+  /**
+   * Sorts outlines into the pieces that hold together: outlines that come within `gap` of
+   * each other (or, with `filled`, lie inside a closed one) join one piece.
+   */
+  function pieces(
+    outlines: Array<NurbsCurve | NurbsCurve[]>,
+    options?: { gap?: number; filled?: boolean },
+  ): Array<{ shape: NurbsCurve[]; members: number[] }>;
 }
 
 /** The <loft-scene> custom element (exported by loft-svg/element). */

@@ -24,7 +24,7 @@ Every animation here is drawn by Loft itself, frame by frame, as SVG.
 
 **UI illustrations** (shown at the top). Small flat pictures of interface ideas (Loft calls them spots) whose parts stand apart in depth and move on hover.
 
-**Icons.** Icons from Lucide, Tabler Icons and Font Awesome, each read straight from its SVG with `kit.path()` and stood up as a spot, so its strokes sit at different depths and it plays a small motion of its own: a heart pulses, a bell rings, an envelope tumbles.
+**Icons.** Icons from Lucide, Tabler Icons and Font Awesome, each read straight from its SVG with `kit.path()` and stood up as a spot, so its pieces sit at different depths (strokes that meet on the page are kept together with `kit.pieces()`) and it plays a small motion of its own: a heart pulses, a bell rings, an envelope tumbles.
 
 ![Ten icons from each of Lucide, Tabler Icons and Font Awesome, each playing a small 3D hover motion in a wave](media/icons.gif)
 
@@ -353,8 +353,21 @@ A pose is offsets from rest: `x`, `y`, `z` (toward the viewer), `rx` (tips the t
 | `command(cx, cy, size)` | The command-key sign |
 | `path(d)` | Outlines from SVG path data, so you can paste a shape from a drawing tool |
 | `turn(curves, angle, cx, cy)`, `shift(curves, dx, dy)` | The same outlines turned or moved |
+| `pieces(outlines, { gap, filled })` | The outlines sorted into the pieces that hold together (see below) |
 
 Every outline is a NURBS curve, and arcs are exact.
+
+**Strokes that only touch.** SVG often draws one object as several strokes that meet or overlap on the page without being joined in the path data: the lid, body and handle of a bin, the shackle and case of a padlock. Lift each stroke to its own depth and they come apart as soon as the picture turns. `kit.pieces` finds which outlines belong together, so you can give each piece one depth:
+
+```js
+const outlines = svgPaths.map(kit.path);
+const parts = [];
+kit.pieces(outlines, { gap: strokeWidth / 2 }).forEach((piece, depth) => {
+  for (const i of piece.members) parts.push({ shape: outlines[i], fill: false, lift: 2 + 3 * depth });
+});
+```
+
+Two outlines join when they come within `gap` of each other anywhere, crossings included, and joining carries through (a touches b touches c). With `filled: true`, a shape that lies inside a closed one joins it too, for filled icons. Each piece is `{ shape, members }`: all its curves, and the indices of the outlines it took in.
 
 ## What is built in
 
@@ -480,7 +493,7 @@ The implementation follows Piegl and Tiller, *The NURBS Book* (2nd ed., Springer
 
 ```sh
 npm install     # esbuild, for bundling only
-npm test        # 52 tests: the NURBS mathematics, the renderer and the UI illustrations
+npm test        # 53 tests: the NURBS mathematics, the renderer and the UI illustrations
 npm run build   # src/ → dist/
 npm run media   # the README animations, rendered with HyperFrames into media/*.gif (needs FFmpeg and Chrome)
 ```

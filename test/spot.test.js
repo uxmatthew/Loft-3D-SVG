@@ -144,3 +144,19 @@ test('radius squares or rounds the corners of a ready-made picture', () => {
   assert.notEqual(draw(2), draw(1));
   assert.equal(draw(undefined), draw(1));
 });
+
+test('kit.pieces joins outlines that meet or overlap into one piece', () => {
+  // A bin drawn as five strokes: lid, body and handle meet; the two slats stand apart.
+  const bin = ['M3 6h18', 'M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6', 'M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2', 'M10 11L10 17', 'M14 11L14 17'];
+  const found = kit.pieces(bin.map(kit.path), { gap: 1 });
+  assert.deepEqual(found.map((p) => p.members), [[0, 1, 2], [3], [4]]);
+  assert.equal(found[0].shape.length, 3);
+  // Crossing strokes join even with no gap allowed; a near miss joins only within the gap.
+  assert.equal(kit.pieces([kit.line(0, 0, 10, 10), kit.line(0, 10, 10, 0)], { gap: 0 }).length, 1);
+  assert.equal(kit.pieces([kit.line(0, 0, 10, 0), kit.line(0, 1.5, 10, 1.5)], { gap: 1 }).length, 2);
+  assert.equal(kit.pieces([kit.line(0, 0, 10, 0), kit.line(0, 1.5, 10, 1.5)], { gap: 2 }).length, 1);
+  // A filled dot inside a filled disc belongs to it only when the shapes are filled.
+  const dot = [kit.circle(0, 0, 10), kit.circle(0, 0, 2)];
+  assert.equal(kit.pieces(dot).length, 2);
+  assert.equal(kit.pieces(dot, { filled: true }).length, 1);
+});

@@ -1,4 +1,4 @@
-// An icon from demo/icons/icons.js as a spot recipe: its outlines stand at different depths
+// An icon from demo/icons/icons.js as a spot recipe: its pieces stand at different depths
 // and it plays a short motion chosen for its idea. Shared by the demo's Icons sheet and the
 // README animations (media/animations). Needs window.Loft (dist/loft.global.js).
 (() => {
@@ -47,11 +47,17 @@
     // The icon sits on a tile of paper, like an app icon, a margin of 6 units all round.
     // `tile` scales its corner radius, from square (0) to a circle (2.3 or more).
     const m = 6 * f, W = w + 2 * m, H = h + 2 * m, side = Math.min(W, H);
-    // Each outline of a stroke icon stands a little further forward than the one before.
-    const parts = icon.paths.map((d, k) => ({
-      shape: kit.shift(kit.path(d), m, m),
-      ...(lib.kind === 'fill' ? { fill: color, stroke: false } : { fill: false, stroke: k === last && last > 0 ? accent : color, width }),
-      lift: (lib.kind === 'fill' ? 4 : 2 + 2.5 * k) * f * energy,
+    // Outlines that meet or overlap on the page are one piece (a bin's lid, body and
+    // handle), so they share a depth and turn together. Each piece of a stroke icon stands
+    // a little further forward than the one before; the last outline takes the accent.
+    const outlines = icon.paths.map((d) => kit.shift(kit.path(d), m, m));
+    const fill = lib.kind === 'fill';
+    const depth = [];
+    kit.pieces(outlines, { gap: fill ? 0 : width / 2, filled: fill }).forEach((piece, k) => piece.members.forEach((i) => { depth[i] = k; }));
+    const parts = outlines.map((shape, k) => ({
+      shape,
+      ...(fill ? { fill: color, stroke: false } : { fill: false, stroke: k === last && last > 0 ? accent : color, width }),
+      lift: (fill ? 4 : 2 + 2.5 * depth[k]) * f * energy,
     }));
     const pivot = move.pivot ? move.pivot.map((v) => v * f + m) : null;
     return {
